@@ -272,35 +272,41 @@ const ChapterReader = () => {
         </Card>
 
         {/* Navigation - Mobile Friendly */}
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-          <div className="w-full sm:w-auto">
-            {prevChapter ? (
-              <Link to={`/novel/${novelSlug}/chapter/${prevChapter}`} className="block">
-                <Button variant="outline" className="w-full sm:w-auto border-gray-600 text-gray-300 hover:bg-gray-700">
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  <span className="hidden sm:inline">Previous Chapter</span>
-                  <span className="sm:hidden">Previous</span>
-                </Button>
-              </Link>
-            ) : (
-              <div className="w-full sm:w-auto"></div>
-            )}
-          </div>
+<div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+  {/* Previous Chapter */}
+  <div className="w-full sm:w-auto flex justify-start sm:justify-center">
+    {prevChapter ? (
+      <Link to={`/novel/${novelSlug}/chapter/${prevChapter}`} className="block w-full sm:w-auto">
+        <Button
+          variant="outline"
+          className="w-full sm:w-auto border-gray-600 text-gray-300 hover:bg-gray-700 flex items-center justify-center"
+        >
+          <ArrowLeft className="h-5 w-5" />
+          <span className="hidden sm:inline ml-2">Previous Chapter</span>
+        </Button>
+      </Link>
+    ) : (
+      <div className="w-full sm:w-auto"></div>
+    )}
+  </div>
 
-          <div className="w-full sm:w-auto">
-            {nextChapter ? (
-              <Link to={`/novel/${novelSlug}/chapter/${nextChapter}`} className="block">
-                <Button variant="outline" className="w-full sm:w-auto border-gray-600 text-gray-300 hover:bg-gray-700">
-                  <span className="hidden sm:inline">Next Chapter</span>
-                  <span className="sm:hidden">Next</span>
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
-            ) : (
-              <div className="w-full sm:w-auto"></div>
-            )}
-          </div>
-        </div>
+  {/* Next Chapter */}
+  <div className="w-full sm:w-auto flex justify-end sm:justify-center">
+    {nextChapter ? (
+      <Link to={`/novel/${novelSlug}/chapter/${nextChapter}`} className="block w-full sm:w-auto">
+        <Button
+          variant="outline"
+          className="w-full sm:w-auto border-gray-600 text-gray-300 hover:bg-gray-700 flex items-center justify-center"
+        >
+          <span className="hidden sm:inline mr-2">Next Chapter</span>
+          <ArrowRight className="h-5 w-5" />
+        </Button>
+      </Link>
+    ) : (
+      <div className="w-full sm:w-auto"></div>
+    )}
+  </div>
+</div>
       </div>
     </div>
   );
