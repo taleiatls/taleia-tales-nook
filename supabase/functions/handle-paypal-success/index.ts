@@ -36,9 +36,16 @@ serve(async (req) => {
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
         "Authorization": `Basic ${btoa(`${paypalClientId}:${paypalClientSecret}`)}`,
+        "Accept": "application/json",
       },
       body: "grant_type=client_credentials",
     });
+
+    if (!tokenResponse.ok) {
+      const errorText = await tokenResponse.text();
+      console.error("PayPal token error:", errorText);
+      throw new Error("Failed to get PayPal access token");
+    }
 
     const tokenData = await tokenResponse.json();
 
@@ -48,14 +55,21 @@ serve(async (req) => {
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${tokenData.access_token}`,
+        "Accept": "application/json",
       },
     });
+
+    if (!captureResponse.ok) {
+      const errorText = await captureResponse.text();
+      console.error("PayPal capture error:", errorText);
+      throw new Error("Failed to capture PayPal payment");
+    }
 
     const captureData = await captureResponse.json();
     console.log("PayPal capture result:", captureData);
 
     if (captureData.status !== "COMPLETED") {
-      throw new Error("Payment was not completed successfully");
+      throw new Error(`Payment was not completed successfully. Status: ${captureData.status}`);
     }
 
     // Update payment record and add coins
@@ -74,17 +88,23 @@ serve(async (req) => {
       .single();
 
     if (fetchError || !paymentRecord) {
+      console.error("Payment record not found:", fetchError);
       throw new Error("Payment record not found");
     }
 
     // Update payment status
-    await supabaseService
+    const { error: updateError } = await supabaseService
       .from("paypal_payments")
       .update({ 
         status: "completed",
         captured_at: new Date().toISOString()
       })
       .eq("paypal_order_id", paypalOrderId);
+
+    if (updateError) {
+      console.error("Error updating payment status:", updateError);
+      throw new Error("Failed to update payment status");
+    }
 
     // Add coins to user account
     const { error: coinsError } = await supabaseService.rpc('add_coins_to_user', {

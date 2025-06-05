@@ -50,14 +50,23 @@ serve(async (req) => {
 
     console.log(`Creating PayPal payment for user ${user.id}: ${totalCoins} coins for $${price}`);
 
-    // Get PayPal access token
+    // Get PayPal credentials
     const paypalClientId = Deno.env.get("PAYPAL_CLIENT_ID");
     const paypalClientSecret = Deno.env.get("PAYPAL_CLIENT_SECRET");
-    const paypalBaseUrl = Deno.env.get("PAYPAL_BASE_URL") || "https://api-m.sandbox.paypal.com"; // sandbox by default
+    const paypalBaseUrl = Deno.env.get("PAYPAL_BASE_URL") || "https://api-m.sandbox.paypal.com";
 
     if (!paypalClientId || !paypalClientSecret) {
+      console.error("PayPal credentials missing:", { 
+        hasClientId: !!paypalClientId, 
+        hasClientSecret: !!paypalClientSecret 
+      });
       throw new Error("PayPal credentials not configured");
     }
+
+    console.log("PayPal config:", { 
+      baseUrl: paypalBaseUrl, 
+      clientId: paypalClientId?.substring(0, 10) + "..." 
+    });
 
     // Get PayPal access token
     const tokenResponse = await fetch(`${paypalBaseUrl}/v1/oauth2/token`, {
@@ -65,15 +74,21 @@ serve(async (req) => {
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
         "Authorization": `Basic ${btoa(`${paypalClientId}:${paypalClientSecret}`)}`,
+        "Accept": "application/json",
       },
       body: "grant_type=client_credentials",
     });
 
+    console.log("Token response status:", tokenResponse.status);
+
     if (!tokenResponse.ok) {
-      throw new Error("Failed to get PayPal access token");
+      const errorText = await tokenResponse.text();
+      console.error("PayPal token error:", errorText);
+      throw new Error(`Failed to get PayPal access token: ${errorText}`);
     }
 
     const tokenData: PayPalAccessTokenResponse = await tokenResponse.json();
+    console.log("Successfully got PayPal access token");
 
     // Create PayPal payment
     const paymentData = {
@@ -91,45 +106,51 @@ serve(async (req) => {
       application_context: {
         return_url: `${req.headers.get("origin")}/payment-success`,
         cancel_url: `${req.headers.get("origin")}/store`,
-        brand_name: "Novel Reader",
+        brand_name: "TaleiaTLS Novel Reader",
         landing_page: "NO_PREFERENCE",
         user_action: "PAY_NOW",
       },
     };
+
+    console.log("Creating PayPal order with data:", JSON.stringify(paymentData, null, 2));
 
     const paymentResponse = await fetch(`${paypalBaseUrl}/v2/checkout/orders`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${tokenData.access_token}`,
+        "Accept": "application/json",
       },
       body: JSON.stringify(paymentData),
     });
 
+    console.log("Payment response status:", paymentResponse.status);
+
     if (!paymentResponse.ok) {
       const errorText = await paymentResponse.text();
       console.error("PayPal payment creation failed:", errorText);
-      throw new Error("Failed to create PayPal payment");
+      throw new Error(`Failed to create PayPal payment: ${errorText}`);
     }
 
     const paymentResult = await paymentResponse.json();
-    console.log("PayPal payment created:", paymentResult.id);
+    console.log("PayPal payment created successfully:", paymentResult.id);
 
     // Find the approval URL
     const approvalUrl = paymentResult.links?.find((link: any) => link.rel === "approve")?.href;
 
     if (!approvalUrl) {
+      console.error("No approval URL in PayPal response:", paymentResult);
       throw new Error("No approval URL returned from PayPal");
     }
 
-    // Optionally store payment info in database
+    // Store payment info in database
     const supabaseService = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
       { auth: { persistSession: false } }
     );
 
-    await supabaseService.from("paypal_payments").insert({
+    const { error: insertError } = await supabaseService.from("paypal_payments").insert({
       user_id: user.id,
       paypal_order_id: paymentResult.id,
       coins: totalCoins,
@@ -137,6 +158,13 @@ serve(async (req) => {
       package_id: packageId,
       status: "pending",
     });
+
+    if (insertError) {
+      console.error("Error storing payment record:", insertError);
+      throw new Error("Failed to store payment record");
+    }
+
+    console.log("Payment record stored successfully");
 
     return new Response(
       JSON.stringify({ 
