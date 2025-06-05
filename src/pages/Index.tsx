@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { Search, BookOpen, Star, Clock, TrendingUp } from "lucide-react";
 import Navbar from "@/components/Navbar";
@@ -81,7 +81,7 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-gray-950 to-black">
+    <div className="min-h-screen bg-black">
       <Navbar />
       
       {/* Hero Section */}
@@ -108,56 +108,73 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Featured Novels Carousel */}
+      {/* Featured Novels Slider */}
       <section className="py-16 px-4">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-3xl font-bold text-white mb-8 text-center font-serif">Featured Novels</h2>
-          <Carousel className="w-full max-w-xs sm:max-w-sm md:max-w-4xl mx-auto">
-            <CarouselContent>
-              {featuredNovels.map((novel) => (
-                <CarouselItem key={novel.id} className="basis-full sm:basis-1/2 lg:basis-1/3">
-                  <Card className="h-full hover:shadow-lg transition-shadow bg-gray-950 border-gray-800">
-                    <CardHeader className="pb-2">
-                      <div className="aspect-[3/4] bg-gray-800 rounded-lg mb-4 overflow-hidden">
-                        <img 
-                          src={novel.cover} 
-                          alt={novel.title}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <CardTitle className="text-lg font-serif line-clamp-2 text-white">{novel.title}</CardTitle>
-                      <CardDescription className="text-gray-400">by {novel.author}</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex items-center gap-2 mb-3">
-                        <div className="flex items-center">
-                          <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
-                          <span className="text-sm font-medium text-gray-300">{novel.rating}</span>
+          <div className="relative">
+            <Carousel 
+              className="w-full" 
+              opts={{
+                align: "start",
+                loop: true,
+                dragFree: true,
+              }}
+            >
+              <CarouselContent className="-ml-2 md:-ml-4">
+                {featuredNovels.map((novel) => (
+                  <CarouselItem key={novel.id} className="pl-2 md:pl-4 basis-[280px] md:basis-[320px] lg:basis-[350px]">
+                    <Card className="h-full hover:shadow-xl hover:shadow-blue-500/20 transition-all duration-300 bg-gray-900 border-gray-700 hover:border-blue-500/50">
+                      <CardHeader className="pb-2">
+                        <div className="aspect-[3/4] bg-gray-800 rounded-lg mb-4 overflow-hidden">
+                          <img 
+                            src={novel.cover} 
+                            alt={novel.title}
+                            className="w-full h-full object-cover"
+                          />
                         </div>
-                        <Badge variant={novel.status === "Ongoing" ? "default" : "secondary"}>
-                          {novel.status}
-                        </Badge>
-                      </div>
-                      <div className="flex flex-wrap gap-1 mb-4">
-                        {novel.tags.map((tag) => (
-                          <Badge key={tag} variant="outline" className="text-xs border-gray-600 text-gray-300">
-                            {tag}
+                        <CardTitle className="text-lg font-serif line-clamp-2 text-white">{novel.title}</CardTitle>
+                        <CardDescription className="text-gray-400">by {novel.author}</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="flex items-center">
+                            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
+                            <span className="text-sm font-medium text-gray-300">{novel.rating}</span>
+                          </div>
+                          <Badge variant={novel.status === "Ongoing" ? "default" : "secondary"}>
+                            {novel.status}
                           </Badge>
-                        ))}
-                      </div>
-                      <Link to={`/novel/${novel.title.toLowerCase().replace(/\s+/g, '-')}`}>
-                        <Button className="w-full bg-blue-600 hover:bg-blue-700">
-                          Read Now
-                        </Button>
-                      </Link>
-                    </CardContent>
-                  </Card>
-                </CarouselItem>
+                        </div>
+                        <div className="flex flex-wrap gap-1 mb-4">
+                          {novel.tags.map((tag) => (
+                            <Badge key={tag} variant="outline" className="text-xs border-gray-600 text-gray-300">
+                              {tag}
+                            </Badge>
+                          ))}
+                        </div>
+                        <Link to={`/novel/${novel.title.toLowerCase().replace(/\s+/g, '-')}`}>
+                          <Button className="w-full bg-blue-600 hover:bg-blue-700">
+                            Read Now
+                          </Button>
+                        </Link>
+                      </CardContent>
+                    </Card>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+            </Carousel>
+            
+            {/* Dots indicator */}
+            <div className="flex justify-center mt-6 gap-2">
+              {featuredNovels.map((_, index) => (
+                <div
+                  key={index}
+                  className="w-2 h-2 rounded-full bg-gray-600 hover:bg-blue-400 transition-colors cursor-pointer"
+                />
               ))}
-            </CarouselContent>
-            <CarouselPrevious />
-            <CarouselNext />
-          </Carousel>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -166,7 +183,7 @@ const Index = () => {
         <div className="max-w-6xl mx-auto">
           <div className="grid md:grid-cols-2 gap-8">
             {/* Recently Updated */}
-            <Card className="bg-gray-950 border-gray-800">
+            <Card className="bg-gray-900 border-gray-700">
               <CardHeader>
                 <CardTitle className="flex items-center text-blue-400">
                   <Clock className="mr-2 h-5 w-5" />
@@ -175,7 +192,7 @@ const Index = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 {displayedUpdated.map((item) => (
-                  <div key={item.id} className="border-b border-gray-800 pb-3 last:border-b-0">
+                  <div key={item.id} className="border-b border-gray-700 pb-3 last:border-b-0">
                     <Link to={`/novel/${item.title.toLowerCase().replace(/\s+/g, '-')}`} className="hover:text-blue-400">
                       <h4 className="font-medium mb-1 text-white">{item.title}</h4>
                       <p className="text-sm text-gray-400 mb-1">{item.chapter}</p>
@@ -238,7 +255,7 @@ const Index = () => {
             </Card>
 
             {/* Popular This Week */}
-            <Card className="bg-gray-950 border-gray-800">
+            <Card className="bg-gray-900 border-gray-700">
               <CardHeader>
                 <CardTitle className="flex items-center text-blue-400">
                   <TrendingUp className="mr-2 h-5 w-5" />
@@ -247,7 +264,7 @@ const Index = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 {popularThisWeek.map((item, index) => (
-                  <div key={item.id} className="flex items-center gap-3 border-b border-gray-800 pb-3 last:border-b-0">
+                  <div key={item.id} className="flex items-center gap-3 border-b border-gray-700 pb-3 last:border-b-0">
                     <div className="w-8 h-8 bg-blue-900 rounded-full flex items-center justify-center text-blue-400 font-bold">
                       {index + 1}
                     </div>
