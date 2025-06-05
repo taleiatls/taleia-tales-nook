@@ -7,51 +7,64 @@ import { useCoins } from '@/hooks/useCoins';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/components/ui/sonner';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 
 interface CoinPackage {
   id: string;
   coins: number;
   price: string;
+  priceInCents: number;
   bonus?: number;
   popular?: boolean;
 }
 
 const coinPackages: CoinPackage[] = [
-  { id: 'small', coins: 10, price: '$0.99' },
-  { id: 'medium', coins: 50, price: '$4.99', bonus: 5 },
-  { id: 'large', coins: 100, price: '$9.99', bonus: 15, popular: true },
-  { id: 'mega', coins: 250, price: '$19.99', bonus: 50 }
+  { id: 'small', coins: 10, price: '$0.99', priceInCents: 99 },
+  { id: 'medium', coins: 50, price: '$4.99', priceInCents: 499, bonus: 5 },
+  { id: 'large', coins: 100, price: '$9.99', priceInCents: 999, bonus: 15, popular: true },
+  { id: 'mega', coins: 250, price: '$19.99', priceInCents: 1999, bonus: 50 }
 ];
 
 const Store = () => {
   const { user } = useAuth();
-  const { coinBalance, addCoins } = useCoins();
+  const { coinBalance } = useCoins();
   const [purchasing, setPurchasing] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const handlePurchase = async (pkg: CoinPackage) => {
     if (!user) {
       toast.error('Please sign in to purchase coins');
+      navigate('/auth');
       return;
     }
 
     setPurchasing(pkg.id);
     
-    // Simulate payment processing
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const totalCoins = pkg.coins + (pkg.bonus || 0);
-    const success = await addCoins(totalCoins, `Purchased ${pkg.coins} coins${pkg.bonus ? ` + ${pkg.bonus} bonus` : ''}`);
-    
-    if (success) {
-      toast.success(`Successfully purchased ${totalCoins} coins!`);
-      // Navigate back to the previous page after successful purchase
-      setTimeout(() => {
-        navigate(-1);
-      }, 1500);
+    try {
+      // Call Stripe checkout function
+      const { data, error } = await supabase.functions.invoke('create-coin-payment', {
+        body: {
+          coins: pkg.coins,
+          bonus: pkg.bonus || 0,
+          price: pkg.priceInCents,
+          packageId: pkg.id
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.url) {
+        // Open Stripe checkout in a new tab
+        window.open(data.url, '_blank');
+      } else {
+        throw new Error('No checkout URL received');
+      }
+    } catch (error) {
+      console.error('Error creating checkout session:', error);
+      toast.error('Failed to start checkout process');
+    } finally {
+      setPurchasing(null);
     }
-    
-    setPurchasing(null);
   };
 
   const handleBackToHome = () => {
@@ -59,7 +72,7 @@ const Store = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-4">
+    <div className="min-h-screen bg-black p-4">
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-8">
           {/* Back to Home Button */}

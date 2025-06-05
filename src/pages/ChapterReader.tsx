@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,6 +7,7 @@ import { toast } from "@/components/ui/sonner";
 import Navbar from "@/components/Navbar";
 import LockedChapter from "@/components/LockedChapter";
 import ChapterListSlider from "@/components/ChapterListSlider";
+import SettingsModal from "@/components/SettingsModal";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCoins } from "@/hooks/useCoins";
@@ -41,6 +41,13 @@ interface ChapterListItem {
   coin_price: number;
 }
 
+interface ReadingSettings {
+  font_size: number;
+  font_family: string;
+  line_height: number;
+  theme: 'light' | 'dark' | 'comfort';
+}
+
 const ChapterReader = () => {
   const { id, chapterId } = useParams<{ id: string; chapterId: string }>();
   const { user } = useAuth();
@@ -51,6 +58,12 @@ const ChapterReader = () => {
   const [loading, setLoading] = useState(true);
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [checkingAccess, setCheckingAccess] = useState(true);
+  const [readingSettings, setReadingSettings] = useState<ReadingSettings>({
+    font_size: 18,
+    font_family: 'serif',
+    line_height: 1.6,
+    theme: 'dark'
+  });
   const navigate = useNavigate();
 
   const fetchChapterData = useCallback(async () => {
@@ -155,13 +168,43 @@ const ChapterReader = () => {
     }
   }, [id, chapterId, navigate, checkChapterPurchased]);
 
+  const fetchReadingSettings = useCallback(async () => {
+    if (user) {
+      try {
+        const { data, error } = await supabase
+          .from('user_reading_settings')
+          .select('*')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (error) throw error;
+        
+        if (data) {
+          setReadingSettings({
+            font_size: data.font_size,
+            font_family: data.font_family,
+            line_height: data.line_height,
+            theme: data.theme as 'light' | 'dark' | 'comfort'
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching reading settings:", error);
+      }
+    }
+  }, [user]);
+
   useEffect(() => {
     fetchChapterData();
-  }, [id, chapterId]);
+    fetchReadingSettings();
+  }, [id, chapterId, fetchChapterData, fetchReadingSettings]);
 
   const handleUnlockSuccess = () => {
     setIsUnlocked(true);
     toast.success("Chapter unlocked! You can now read it.");
+  };
+
+  const handleSettingsChange = (newSettings: ReadingSettings) => {
+    setReadingSettings(newSettings);
   };
 
   if (loading || checkingAccess) {
@@ -224,6 +267,17 @@ const ChapterReader = () => {
   const nextChapter = chapter.chapter_number < novel.total_chapters ? chapter.chapter_number + 1 : null;
   const prevChapter = chapter.chapter_number > 1 ? chapter.chapter_number - 1 : null;
 
+  const getThemeClasses = () => {
+    switch (readingSettings.theme) {
+      case 'light':
+        return 'bg-white text-gray-900';
+      case 'comfort':
+        return 'bg-amber-50 text-amber-900';
+      default:
+        return 'bg-gray-800 text-gray-200';
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
       <Navbar />
@@ -248,6 +302,7 @@ const ChapterReader = () => {
             </div>
             
             <div className="flex items-center gap-2">
+              <SettingsModal onSettingsChange={handleSettingsChange} />
               <ChapterListSlider
                 chapters={allChapters}
                 currentChapter={chapter.chapter_number}
@@ -261,7 +316,14 @@ const ChapterReader = () => {
         {/* Chapter Content */}
         <Card className="mb-8 bg-gray-800 border-gray-700">
           <CardContent className="p-4 md:p-8">
-            <div className="prose prose-invert max-w-none text-gray-200 text-base md:text-lg leading-relaxed md:leading-loose">
+            <div 
+              className={`prose prose-invert max-w-none ${getThemeClasses()}`}
+              style={{
+                fontFamily: readingSettings.font_family,
+                fontSize: `${readingSettings.font_size}px`,
+                lineHeight: readingSettings.line_height
+              }}
+            >
               {chapter.content.split('\n').map((paragraph, index) => (
                 <p key={index} className="mb-4">
                   {paragraph}
@@ -273,37 +335,36 @@ const ChapterReader = () => {
 
         {/* Navigation - Mobile Friendly */}
         <div className="flex justify-between items-center gap-4">
-  {/* Previous Chapter */}
-  {prevChapter ? (
-    <Link to={`/novel/${novelSlug}/chapter/${prevChapter}`}>
-      <Button
-        variant="outline"
-        className="min-w-[44px] px-3 sm:px-5 py-2 border-gray-600 text-gray-300 hover:bg-gray-700 flex items-center justify-center"
-      >
-        <ArrowLeft className="h-5 w-5" />
-        <span className="hidden sm:inline ml-2">Previous</span>
-      </Button>
-    </Link>
-  ) : (
-    <div />
-  )}
+          {/* Previous Chapter */}
+          {prevChapter ? (
+            <Link to={`/novel/${novelSlug}/chapter/${prevChapter}`}>
+              <Button
+                variant="outline"
+                className="min-w-[44px] px-3 sm:px-5 py-2 border-gray-600 text-gray-300 hover:bg-gray-700 flex items-center justify-center"
+              >
+                <ArrowLeft className="h-5 w-5" />
+                <span className="hidden sm:inline ml-2">Previous</span>
+              </Button>
+            </Link>
+          ) : (
+            <div />
+          )}
 
-  {/* Next Chapter */}
-  {nextChapter ? (
-    <Link to={`/novel/${novelSlug}/chapter/${nextChapter}`}>
-      <Button
-        variant="outline"
-        className="min-w-[44px] px-3 sm:px-5 py-2 border-gray-600 text-gray-300 hover:bg-gray-700 flex items-center justify-center"
-      >
-        <span className="hidden sm:inline mr-2">Next</span>
-        <ArrowRight className="h-5 w-5" />
-      </Button>
-    </Link>
-  ) : (
-    <div />
-  )}
-</div>
-
+          {/* Next Chapter */}
+          {nextChapter ? (
+            <Link to={`/novel/${novelSlug}/chapter/${nextChapter}`}>
+              <Button
+                variant="outline"
+                className="min-w-[44px] px-3 sm:px-5 py-2 border-gray-600 text-gray-300 hover:bg-gray-700 flex items-center justify-center"
+              >
+                <span className="hidden sm:inline mr-2">Next</span>
+                <ArrowRight className="h-5 w-5" />
+              </Button>
+            </Link>
+          ) : (
+            <div />
+          )}
+        </div>
       </div>
     </div>
   );
