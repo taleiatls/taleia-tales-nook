@@ -147,7 +147,7 @@ const Store = () => {
                   onClick={() => handlePurchase(pkg)}
                   disabled={purchasing === pkg.id}
                 >
-                  {purchasing === pkg.id ? 'Processing...' : 'Pay with PayPal'}
+                  {purchasing === pkg.id ? 'Processing...' : 'PayPal'}
                 </Button>
                 
                 <div className="mt-4 text-center text-sm text-gray-400">
