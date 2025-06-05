@@ -53,7 +53,7 @@ serve(async (req) => {
     // Get PayPal credentials
     const paypalClientId = Deno.env.get("PAYPAL_CLIENT_ID");
     const paypalClientSecret = Deno.env.get("PAYPAL_CLIENT_SECRET");
-    const paypalBaseUrl = "https://api-m.sandbox.paypal.com"; // Fixed base URL
+    const paypalBaseUrl = "https://api-m.sandbox.paypal.com";
 
     if (!paypalClientId || !paypalClientSecret) {
       console.error("PayPal credentials missing:", { 
@@ -90,10 +90,10 @@ serve(async (req) => {
     const tokenData: PayPalAccessTokenResponse = await tokenResponse.json();
     console.log("Successfully got PayPal access token");
 
-    // Get the origin for return/cancel URLs - use the actual Lovable preview URL
+    // Get the origin for return/cancel URLs
     const origin = "https://0b22bd10-10fb-4ca4-ae09-c33111b0a296.lovableproject.com";
 
-    // Create PayPal payment with improved configuration
+    // Create simplified PayPal payment - removing problematic fields
     const paymentData = {
       intent: "CAPTURE",
       purchase_units: [
@@ -103,23 +103,18 @@ serve(async (req) => {
             value: price.toFixed(2),
           },
           description: `${totalCoins} coins (${coins} + ${bonus || 0} bonus)`,
-          custom_id: `${user.id}_${packageId}_${Date.now()}`,
         },
       ],
       application_context: {
         return_url: `${origin}/payment-success`,
         cancel_url: `${origin}/store`,
         brand_name: "TaleiaTLS Novel Reader",
-        landing_page: "LOGIN",
         user_action: "PAY_NOW",
         shipping_preference: "NO_SHIPPING",
-        payment_method: {
-          payee_preferred: "IMMEDIATE_PAYMENT_REQUIRED"
-        }
       },
     };
 
-    console.log("Creating PayPal order with data:", JSON.stringify(paymentData, null, 2));
+    console.log("Creating PayPal order with simplified data:", JSON.stringify(paymentData, null, 2));
 
     const paymentResponse = await fetch(`${paypalBaseUrl}/v2/checkout/orders`, {
       method: "POST",
@@ -127,8 +122,6 @@ serve(async (req) => {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${tokenData.access_token}`,
         "Accept": "application/json",
-        "PayPal-Request-Id": `${user.id}_${Date.now()}`, // Idempotency key
-        "Prefer": "return=representation"
       },
       body: JSON.stringify(paymentData),
     });
