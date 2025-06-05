@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,9 +15,13 @@ interface UserProfile {
   username: string | null;
   email: string | null;
   created_at: string;
-  user_coins?: {
-    balance: number;
-  };
+  coin_balance?: number;
+}
+
+interface CoinAdjustmentResponse {
+  success: boolean;
+  new_balance?: number;
+  error?: string;
 }
 
 const UserManagement = () => {
@@ -34,16 +38,31 @@ const UserManagement = () => {
 
   const fetchUsers = async () => {
     try {
-      const { data, error } = await supabase
+      // First get all profiles
+      const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select(`
-          *,
-          user_coins (balance)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setUsers(data || []);
+      if (profilesError) throw profilesError;
+
+      // Then get coin balances for each user
+      const usersWithCoins: UserProfile[] = [];
+      
+      for (const profile of profiles || []) {
+        const { data: coinData } = await supabase
+          .from('user_coins')
+          .select('balance')
+          .eq('user_id', profile.id)
+          .single();
+
+        usersWithCoins.push({
+          ...profile,
+          coin_balance: coinData?.balance || 0
+        });
+      }
+
+      setUsers(usersWithCoins);
     } catch (error) {
       console.error("Error fetching users:", error);
       toast.error("Failed to fetch users");
@@ -66,14 +85,16 @@ const UserManagement = () => {
 
       if (error) throw error;
 
-      if (data?.success) {
-        toast.success(`Coins adjusted successfully. New balance: ${data.new_balance}`);
+      const response = data as CoinAdjustmentResponse;
+      
+      if (response?.success) {
+        toast.success(`Coins adjusted successfully. New balance: ${response.new_balance}`);
         setIsDialogOpen(false);
         setCoinAmount("");
         setDescription("");
         fetchUsers();
       } else {
-        toast.error(data?.error || "Failed to adjust coins");
+        toast.error(response?.error || "Failed to adjust coins");
       }
     } catch (error) {
       console.error("Error adjusting coins:", error);
@@ -83,6 +104,7 @@ const UserManagement = () => {
 
   const openCoinDialog = (user: UserProfile) => {
     setSelectedUser(user);
+    setCoinAmount(user.coin_balance?.toString() || "0");
     setIsDialogOpen(true);
   };
 
@@ -117,7 +139,7 @@ const UserManagement = () => {
                 <TableCell>
                   <Badge variant="secondary" className="flex items-center gap-1 w-fit">
                     <Coins className="h-3 w-3" />
-                    {user.user_coins?.[0]?.balance || 0}
+                    {user.coin_balance || 0}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-gray-200">
