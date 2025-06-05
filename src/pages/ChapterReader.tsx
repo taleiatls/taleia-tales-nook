@@ -1,15 +1,15 @@
-import { useState, useEffect, useCallback } from "react";
-import { useParams, Link } from "react-router-dom";
+
+import { useState, useEffect } from "react";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { ArrowLeft, ArrowRight, Settings, Menu } from "lucide-react";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { ArrowLeft, ArrowRight, BookOpen, Eye, Settings } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
+import Navbar from "@/components/Navbar";
+import LockedChapter from "@/components/LockedChapter";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCoins } from "@/hooks/useCoins";
-import LockedChapter from "@/components/LockedChapter";
 import { isUUID, slugify } from "@/lib/slugify";
 
 interface Chapter {
@@ -18,6 +18,8 @@ interface Chapter {
   chapter_number: number;
   title: string;
   content: string;
+  views: number;
+  created_at: string;
   is_locked: boolean;
   coin_price: number;
 }
@@ -25,358 +27,386 @@ interface Chapter {
 interface Novel {
   id: string;
   title: string;
+  author: string;
+  total_chapters: number;
 }
-
-interface ReadingSettings {
-  font_size: number;
-  font_family: string;
-  line_height: number;
-  theme: 'light' | 'dark' | 'comfort';
-}
-
-const defaultSettings: ReadingSettings = {
-  font_size: 18,
-  font_family: 'serif',
-  line_height: 1.6,
-  theme: 'dark'
-};
 
 const ChapterReader = () => {
-  const { id: novelIdOrSlug, chapterId } = useParams();
+  const { id, chapterId } = useParams<{ id: string; chapterId: string }>();
   const { user } = useAuth();
   const { checkChapterPurchased } = useCoins();
   const [chapter, setChapter] = useState<Chapter | null>(null);
   const [novel, setNovel] = useState<Novel | null>(null);
   const [loading, setLoading] = useState(true);
-  const [chapters, setChapters] = useState<{ id: string; chapter_number: number; title: string }[]>([]);
-  const [settings, setSettings] = useState<ReadingSettings>(defaultSettings);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [isChapterUnlocked, setIsChapterUnlocked] = useState(false);
+  const [isUnlocked, setIsUnlocked] = useState(false);
+  const [checkingAccess, setCheckingAccess] = useState(true);
+  const navigate = useNavigate();
 
-  const checkChapterAccess = useCallback(async (chapterData: Chapter) => {
-    if (chapterData.is_locked && user) {
-      const purchased = await checkChapterPurchased(chapterData.id);
-      setIsChapterUnlocked(purchased);
-    } else if (!chapterData.is_locked) {
-      setIsChapterUnlocked(true);
-    }
-  }, [user, checkChapterPurchased]);
+  // Reading settings state
+  const [fontSize, setFontSize] = useState(18);
+  const [fontFamily, setFontFamily] = useState('serif');
+  const [lineHeight, setLineHeight] = useState(1.6);
+  const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchChapterData = async () => {
       setLoading(true);
+      setCheckingAccess(true);
+      
       try {
-        let novelId = novelIdOrSlug;
+        console.log("Fetching chapter with novel ID/slug:", id, "chapter:", chapterId);
+        
+        let novelData: Novel | null = null;
 
-        // If the novelIdOrSlug is not a UUID, we need to find the novel by slug
-        if (!isUUID(novelIdOrSlug || '')) {
-          console.log("Looking up novel by slug:", novelIdOrSlug);
-          
-          const { data: novels, error: novelsError } = await supabase
+        // Find the novel first
+        if (isUUID(id || '')) {
+          const { data, error } = await supabase
             .from('novels')
-            .select('id, title');
+            .select('id, title, author, total_chapters')
+            .eq('id', id)
+            .maybeSingle();
 
-          if (novelsError) throw novelsError;
+          if (error) throw error;
+          novelData = data;
+        } else {
+          // Search by slug
+          const { data: allNovels, error } = await supabase
+            .from('novels')
+            .select('id, title, author, total_chapters');
 
-          const matchingNovel = novels?.find(novel => 
-            slugify(novel.title) === novelIdOrSlug
-          );
+          if (error) throw error;
 
-          if (!matchingNovel) {
-            toast.error("Novel not found");
-            return;
-          }
-
-          novelId = matchingNovel.id;
+          novelData = allNovels?.find(novel => slugify(novel.title) === id) || null;
         }
 
-        // Fetch novel info
-        const { data: novelData, error: novelError } = await supabase
-          .from('novels')
-          .select('id, title')
-          .eq('id', novelId)
-          .maybeSingle();
+        if (!novelData) {
+          toast.error("Novel not found");
+          navigate("/");
+          return;
+        }
 
-        if (novelError) throw novelError;
         setNovel(novelData);
 
-        // Fetch all chapter numbers and titles for the novel (for navigation)
-        const { data: chaptersData, error: chaptersError } = await supabase
-          .from('chapters')
-          .select('id, chapter_number, title')
-          .eq('novel_id', novelId)
-          .order('chapter_number', { ascending: true });
-          
-        if (chaptersError) throw chaptersError;
-        setChapters(chaptersData || []);
-
-        // Fetch current chapter content
+        // Fetch the specific chapter
         const { data: chapterData, error: chapterError } = await supabase
           .from('chapters')
           .select('*')
-          .eq('novel_id', novelId)
+          .eq('novel_id', novelData.id)
           .eq('chapter_number', parseInt(chapterId || '1'))
           .maybeSingle();
 
         if (chapterError) throw chapterError;
+
+        if (!chapterData) {
+          toast.error("Chapter not found");
+          navigate(`/novel/${id}`);
+          return;
+        }
+
         setChapter(chapterData);
 
-        // Check chapter access
-        if (chapterData) {
-          await checkChapterAccess(chapterData);
+        // Check if chapter is locked and if user has access
+        if (chapterData.is_locked && user) {
+          const purchased = await checkChapterPurchased(chapterData.id);
+          setIsUnlocked(purchased);
+        } else if (!chapterData.is_locked) {
+          setIsUnlocked(true);
+        } else {
+          setIsUnlocked(false);
         }
 
-        // Increment view count for this chapter (only if unlocked)
-        if (chapterData && (!chapterData.is_locked || isChapterUnlocked)) {
-          await supabase
-            .from('chapters')
-            .update({ views: (chapterData.views || 0) + 1 })
-            .eq('id', chapterData.id);
-        }
-
-        // Fetch user reading settings if logged in
-        if (user) {
-          const { data: userSettings, error: settingsError } = await supabase
-            .from('user_reading_settings')
-            .select('*')
-            .eq('user_id', user.id)
-            .maybeSingle();
-
-          if (!settingsError && userSettings) {
-            setSettings({
-              font_size: userSettings.font_size,
-              font_family: userSettings.font_family,
-              line_height: userSettings.line_height,
-              theme: userSettings.theme as 'light' | 'dark' | 'comfort'
-            });
+        // Increment view count if chapter is accessible
+        if (!chapterData.is_locked || (chapterData.is_locked && user)) {
+          const purchased = chapterData.is_locked ? await checkChapterPurchased(chapterData.id) : true;
+          if (purchased) {
+            await supabase
+              .from('chapters')
+              .update({ views: (chapterData.views || 0) + 1 })
+              .eq('id', chapterData.id);
           }
         }
+
       } catch (error) {
-        console.error("Error fetching chapter:", error);
+        console.error("Error fetching chapter data:", error);
         toast.error("Failed to load chapter");
       } finally {
         setLoading(false);
+        setCheckingAccess(false);
       }
     };
 
-    fetchData();
-    window.scrollTo(0, 0);
-  }, [novelIdOrSlug, chapterId, user]);
+    if (id && chapterId) {
+      fetchChapterData();
+    }
+  }, [id, chapterId, user, navigate, checkChapterPurchased]);
 
-  // Handle chapter unlock separately
+  // Load user reading settings
   useEffect(() => {
-    if (chapter) {
-      checkChapterAccess(chapter);
-    }
-  }, [chapter, checkChapterAccess]);
+    const loadReadingSettings = async () => {
+      if (!user) return;
 
-  const handleChapterUnlock = async () => {
-    if (chapter) {
-      const purchased = await checkChapterPurchased(chapter.id);
-      setIsChapterUnlocked(purchased);
+      try {
+        const { data, error } = await supabase
+          .from('user_reading_settings')
+          .select('*')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (error) throw error;
+
+        if (data) {
+          setFontSize(data.font_size || 18);
+          setFontFamily(data.font_family || 'serif');
+          setLineHeight(data.line_height || 1.6);
+        }
+      } catch (error) {
+        console.error("Error loading reading settings:", error);
+      }
+    };
+
+    loadReadingSettings();
+  }, [user]);
+
+  const saveReadingSettings = async () => {
+    if (!user) return;
+
+    try {
+      await supabase
+        .from('user_reading_settings')
+        .update({
+          font_size: fontSize,
+          font_family: fontFamily,
+          line_height: lineHeight,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', user.id);
+
+      toast.success("Reading settings saved");
+    } catch (error) {
+      console.error("Error saving reading settings:", error);
+      toast.error("Failed to save settings");
     }
   };
 
-  const currentIndex = chapters.findIndex(c => c.chapter_number.toString() === chapterId);
-  const prevChapter = currentIndex > 0 ? chapters[currentIndex - 1] : null;
-  const nextChapter = currentIndex < chapters.length - 1 ? chapters[currentIndex + 1] : null;
-
-  // Generate slug for this novel for consistent URLs
-  const novelSlug = novel ? slugify(novel.title) : novelIdOrSlug;
-
-  // Apply theme styles
-  const getThemeStyles = () => {
-    switch (settings.theme) {
-      case 'light':
-        return 'bg-gray-100 text-gray-900';
-      case 'dark':
-        return 'bg-gray-900 text-gray-200';
-      case 'comfort':
-        return 'bg-amber-50 text-amber-900';
-      default:
-        return 'bg-gray-900 text-gray-200';
-    }
+  const handleUnlockSuccess = () => {
+    setIsUnlocked(true);
+    toast.success("Chapter unlocked! You can now read it.");
   };
 
-  // Show locked chapter component if chapter is locked and not purchased
-  const shouldShowLockedChapter = chapter?.is_locked && !isChapterUnlocked && user;
-  const shouldShowLoginPrompt = chapter?.is_locked && !user;
-
-  return (
-    <div className={`min-h-screen ${getThemeStyles()}`}>
-      {/* Top Navigation Bar */}
-      <div className={`sticky top-0 z-10 ${settings.theme === 'light' ? 'bg-white' : settings.theme === 'dark' ? 'bg-black' : 'bg-amber-100'} border-b ${settings.theme === 'light' ? 'border-gray-200' : settings.theme === 'dark' ? 'border-gray-800' : 'border-amber-200'}`}>
-        <div className="container mx-auto px-4 py-2 flex items-center justify-between">
-          <Link 
-            to={`/novel/${novelSlug}`} 
-            className={`flex items-center ${settings.theme === 'light' ? 'text-blue-600' : settings.theme === 'dark' ? 'text-blue-400' : 'text-amber-800'}`}
-          >
-            <ArrowLeft className="h-5 w-5 mr-2" />
-            <span className="font-medium">Back to Novel</span>
-          </Link>
-          
-          {/* Chapter Navigation */}
-          <div className="hidden md:flex items-center space-x-4">
-            {prevChapter && (
-              <Link to={`/novel/${novelSlug}/chapter/${prevChapter.chapter_number}`}>
-                <Button variant="outline" size="sm" className={settings.theme === 'dark' ? 'border-gray-700 text-gray-300' : ''}>
-                  <ArrowLeft className="h-4 w-4 mr-1" />
-                  Previous
-                </Button>
-              </Link>
-            )}
-            
-            <Link to={`/settings`} className="md:hidden">
-              <Button variant="ghost" size="icon" className={settings.theme === 'dark' ? 'text-gray-300' : ''}>
-                <Settings className="h-5 w-5" />
-              </Button>
-            </Link>
-            
-            {nextChapter && (
-              <Link to={`/novel/${novelSlug}/chapter/${nextChapter.chapter_number}`}>
-                <Button variant="outline" size="sm" className={settings.theme === 'dark' ? 'border-gray-700 text-gray-300' : ''}>
-                  Next
-                  <ArrowRight className="h-4 w-4 ml-1" />
-                </Button>
-              </Link>
-            )}
-          </div>
-
-          {/* Mobile Menu Button */}
-          <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="md:hidden">
-                <Menu className="h-5 w-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent 
-              side="right" 
-              className={`w-64 ${settings.theme === 'light' ? 'bg-white' : settings.theme === 'dark' ? 'bg-gray-900 border-gray-800' : 'bg-amber-50'}`}
-            >
-              <div className="py-6">
-                <h3 className={`font-medium mb-4 ${settings.theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>
-                  Chapter Navigation
-                </h3>
-                <ScrollArea className="h-[70vh]">
-                  <div className="space-y-1 pr-4">
-                    {chapters.map((c) => (
-                      <Link
-                        key={c.id}
-                        to={`/novel/${novelSlug}/chapter/${c.chapter_number}`}
-                        className={`block py-2 px-3 rounded-md ${
-                          c.chapter_number.toString() === chapterId 
-                          ? (settings.theme === 'dark' ? 'bg-blue-900 text-blue-100' : settings.theme === 'light' ? 'bg-blue-100 text-blue-800' : 'bg-amber-200 text-amber-900')
-                          : settings.theme === 'dark' ? 'text-gray-300 hover:bg-gray-800' : settings.theme === 'light' ? 'text-gray-700 hover:bg-gray-100' : 'text-amber-800 hover:bg-amber-100'
-                        }`}
-                        onClick={() => setMenuOpen(false)}
-                      >
-                        {c.title}
-                      </Link>
-                    ))}
-                  </div>
-                </ScrollArea>
-                
-                <div className="mt-8 space-y-3">
-                  <Link to={`/settings`} className="block">
-                    <Button 
-                      variant="outline" 
-                      className="w-full flex items-center justify-center"
-                    >
-                      <Settings className="h-4 w-4 mr-2" />
-                      Reading Settings
-                    </Button>
-                  </Link>
-                  
-                  <Link to={`/novel/${novelSlug}`} className="block">
-                    <Button 
-                      variant="default" 
-                      className="w-full"
-                    >
-                      Back to Novel
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            </SheetContent>
-          </Sheet>
+  if (loading || checkingAccess) {
+    return (
+      <div className="min-h-screen bg-black">
+        <Navbar />
+        <div className="max-w-4xl mx-auto px-4 py-8 text-center text-gray-300">
+          <p>Loading chapter...</p>
         </div>
       </div>
+    );
+  }
 
-      <div 
-        className="container mx-auto px-4 py-8 max-w-3xl"
-        style={{
-          fontFamily: settings.font_family,
-          fontSize: `${settings.font_size}px`,
-          lineHeight: settings.line_height
-        }}
-      >
-        {loading ? (
-          <div className="text-center py-12">Loading chapter...</div>
-        ) : chapter ? (
-          <>
-            <h1 className="text-3xl font-bold mb-2">{chapter.title}</h1>
-            <h2 className="text-lg mb-8">{novel?.title}</h2>
+  if (!chapter || !novel) {
+    return (
+      <div className="min-h-screen bg-black">
+        <Navbar />
+        <div className="max-w-4xl mx-auto px-4 py-8 text-center text-gray-300">
+          <p>Chapter not found</p>
+          <Link to="/">
+            <Button className="mt-4">Go Home</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Show locked chapter component if chapter is locked and user doesn't have access
+  if (chapter.is_locked && !isUnlocked) {
+    const novelSlug = slugify(novel.title);
+    
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+        <Navbar />
+        
+        <div className="max-w-4xl mx-auto px-4 py-8">
+          {/* Navigation */}
+          <div className="mb-6">
+            <Link to={`/novel/${novelSlug}`}>
+              <Button variant="outline" className="mb-4 border-gray-600 text-gray-300 hover:bg-gray-700">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to Novel
+              </Button>
+            </Link>
+          </div>
+
+          <LockedChapter
+            chapterId={chapter.id}
+            chapterTitle={chapter.title}
+            coinPrice={chapter.coin_price}
+            novelId={novel.id}
+            onUnlock={handleUnlockSuccess}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  const novelSlug = slugify(novel.title);
+  const nextChapter = chapter.chapter_number < novel.total_chapters ? chapter.chapter_number + 1 : null;
+  const prevChapter = chapter.chapter_number > 1 ? chapter.chapter_number - 1 : null;
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+      <Navbar />
+      
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="mb-6">
+          <Link to={`/novel/${novelSlug}`}>
+            <Button variant="outline" className="mb-4 border-gray-600 text-gray-300 hover:bg-gray-700">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to {novel.title}
+            </Button>
+          </Link>
+          
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-100 mb-2">{chapter.title}</h1>
+              <p className="text-gray-400">
+                Chapter {chapter.chapter_number} of {novel.total_chapters}
+              </p>
+            </div>
             
-            {/* Show locked chapter component */}
-            {shouldShowLockedChapter ? (
-              <LockedChapter
-                chapterId={chapter.id}
-                chapterTitle={chapter.title}
-                coinPrice={chapter.coin_price}
-                novelId={novel?.id || ''}
-                onUnlock={handleChapterUnlock}
-              />
-            ) : shouldShowLoginPrompt ? (
-              <Card className="p-8 text-center">
-                <h2 className="text-xl font-bold mb-4">Chapter Locked</h2>
-                <p className="mb-6">This chapter requires coins to unlock. Please sign in to continue.</p>
-                <Link to="/auth">
-                  <Button>Sign In</Button>
-                </Link>
-              </Card>
-            ) : (
-              <>
-                {/* Chapter Content */}
-                <div className="prose max-w-none prose-lg">
-                  {chapter.content.split('\n\n').map((paragraph, index) => (
-                    <p key={index} className="mb-6">{paragraph}</p>
-                  ))}
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 text-gray-400">
+                <Eye className="h-4 w-4" />
+                <span>{(chapter.views || 0).toLocaleString()} views</span>
+              </div>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowSettings(!showSettings)}
+                className="border-gray-600 text-gray-300 hover:bg-gray-700"
+              >
+                <Settings className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Reading Settings */}
+        {showSettings && (
+          <Card className="mb-6 bg-gray-800 border-gray-700">
+            <CardHeader>
+              <CardTitle className="text-gray-100">Reading Settings</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Font Size: {fontSize}px
+                  </label>
+                  <input
+                    type="range"
+                    min="14"
+                    max="24"
+                    value={fontSize}
+                    onChange={(e) => setFontSize(parseInt(e.target.value))}
+                    className="w-full"
+                  />
                 </div>
                 
-                {/* Bottom Navigation */}
-                <div className="mt-12 flex justify-between items-center">
-                  {prevChapter ? (
-                    <Link to={`/novel/${novelSlug}/chapter/${prevChapter.chapter_number}`}>
-                      <Button className={`flex items-center ${settings.theme === 'dark' ? 'bg-blue-800 hover:bg-blue-700' : settings.theme === 'light' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-amber-600 hover:bg-amber-700 text-white'}`}>
-                        <ArrowLeft className="mr-2 h-4 w-4" />
-                        Previous Chapter
-                      </Button>
-                    </Link>
-                  ) : (
-                    <div></div>
-                  )}
-                  
-                  {nextChapter && (
-                    <Link to={`/novel/${novelSlug}/chapter/${nextChapter.chapter_number}`}>
-                      <Button className={`flex items-center ${settings.theme === 'dark' ? 'bg-blue-800 hover:bg-blue-700' : settings.theme === 'light' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-amber-600 hover:bg-amber-700 text-white'}`}>
-                        Next Chapter
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </Button>
-                    </Link>
-                  )}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Font Family
+                  </label>
+                  <select
+                    value={fontFamily}
+                    onChange={(e) => setFontFamily(e.target.value)}
+                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-gray-200"
+                  >
+                    <option value="serif">Serif</option>
+                    <option value="sans-serif">Sans Serif</option>
+                    <option value="monospace">Monospace</option>
+                  </select>
                 </div>
-              </>
-            )}
-          </>
-        ) : (
-          <Card className="p-8 text-center">
-            <h2 className="text-xl font-bold mb-4">Chapter Not Found</h2>
-            <p className="mb-6">The chapter you're looking for doesn't exist.</p>
-            <Link to={`/novel/${novelSlug}`}>
-              <Button>Back to Novel</Button>
-            </Link>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Line Height: {lineHeight}
+                  </label>
+                  <input
+                    type="range"
+                    min="1.2"
+                    max="2.0"
+                    step="0.1"
+                    value={lineHeight}
+                    onChange={(e) => setLineHeight(parseFloat(e.target.value))}
+                    className="w-full"
+                  />
+                </div>
+              </div>
+              
+              <Button
+                onClick={saveReadingSettings}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                Save Settings
+              </Button>
+            </CardContent>
           </Card>
         )}
+
+        {/* Chapter Content */}
+        <Card className="mb-8 bg-gray-800 border-gray-700">
+          <CardContent className="p-8">
+            <div
+              className="prose prose-invert max-w-none text-gray-200"
+              style={{
+                fontSize: `${fontSize}px`,
+                fontFamily: fontFamily,
+                lineHeight: lineHeight,
+              }}
+            >
+              {chapter.content.split('\n').map((paragraph, index) => (
+                <p key={index} className="mb-4">
+                  {paragraph}
+                </p>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Navigation */}
+        <div className="flex justify-between items-center">
+          {prevChapter ? (
+            <Link to={`/novel/${novelSlug}/chapter/${prevChapter}`}>
+              <Button variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-700">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Previous Chapter
+              </Button>
+            </Link>
+          ) : (
+            <div></div>
+          )}
+
+          <Link to={`/novel/${novelSlug}`}>
+            <Button variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-700">
+              <BookOpen className="mr-2 h-4 w-4" />
+              Chapter List
+            </Button>
+          </Link>
+
+          {nextChapter ? (
+            <Link to={`/novel/${novelSlug}/chapter/${nextChapter}`}>
+              <Button variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-700">
+                Next Chapter
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+          ) : (
+            <div></div>
+          )}
+        </div>
       </div>
     </div>
   );
