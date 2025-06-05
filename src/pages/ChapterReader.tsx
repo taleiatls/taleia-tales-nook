@@ -271,16 +271,17 @@ const ChapterReader = () => {
           </CardContent>
         </Card>
 
+        {/* Navigation - Mobile Friendly */}
         <div className="flex justify-between items-center gap-4">
   {/* Previous Chapter */}
   {prevChapter ? (
     <Link to={`/novel/${novelSlug}/chapter/${prevChapter}`}>
       <Button
         variant="outline"
-        className="p-2 sm:px-4 sm:py-2 border-gray-600 text-gray-300 hover:bg-gray-700 flex items-center"
+        className="min-w-[44px] px-3 sm:px-5 py-2 border-gray-600 text-gray-300 hover:bg-gray-700 flex items-center justify-center"
       >
         <ArrowLeft className="h-5 w-5" />
-        <span className="hidden sm:inline ml-2">Previous Chapter</span>
+        <span className="hidden sm:inline ml-2">Previous</span>
       </Button>
     </Link>
   ) : (
@@ -292,9 +293,9 @@ const ChapterReader = () => {
     <Link to={`/novel/${novelSlug}/chapter/${nextChapter}`}>
       <Button
         variant="outline"
-        className="p-2 sm:px-4 sm:py-2 border-gray-600 text-gray-300 hover:bg-gray-700 flex items-center"
+        className="min-w-[44px] px-3 sm:px-5 py-2 border-gray-600 text-gray-300 hover:bg-gray-700 flex items-center justify-center"
       >
-        <span className="hidden sm:inline mr-2">Next Chapter</span>
+        <span className="hidden sm:inline mr-2">Next</span>
         <ArrowRight className="h-5 w-5" />
       </Button>
     </Link>
@@ -302,6 +303,7 @@ const ChapterReader = () => {
     <div />
   )}
 </div>
+
       </div>
     </div>
   );
