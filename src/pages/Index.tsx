@@ -51,13 +51,13 @@ const popularThisWeek = [
 
 const Index = () => {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-black via-gray-950 to-black">
       <Navbar />
       
       {/* Hero Section */}
       <section className="relative py-20 px-4">
         <div className="max-w-6xl mx-auto text-center">
-          <h1 className="text-5xl md:text-7xl font-bold text-gray-100 mb-6 font-serif">
+          <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 font-serif">
             Welcome to <span className="text-blue-400">TaleiaTLS</span>
           </h1>
           <p className="text-xl md:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto">
@@ -81,21 +81,21 @@ const Index = () => {
       {/* Featured Novels Carousel */}
       <section className="py-16 px-4">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl font-bold text-gray-100 mb-8 text-center font-serif">Featured Novels</h2>
-          <Carousel className="w-full max-w-4xl mx-auto">
+          <h2 className="text-3xl font-bold text-white mb-8 text-center font-serif">Featured Novels</h2>
+          <Carousel className="w-full max-w-xs sm:max-w-sm md:max-w-4xl mx-auto">
             <CarouselContent>
               {featuredNovels.map((novel) => (
-                <CarouselItem key={novel.id} className="md:basis-1/2 lg:basis-1/3">
-                  <Card className="h-full hover:shadow-lg transition-shadow bg-gray-800 border-gray-700">
+                <CarouselItem key={novel.id} className="basis-full sm:basis-1/2 lg:basis-1/3">
+                  <Card className="h-full hover:shadow-lg transition-shadow bg-gray-950 border-gray-800">
                     <CardHeader className="pb-2">
-                      <div className="aspect-[3/4] bg-gray-700 rounded-lg mb-4 overflow-hidden">
+                      <div className="aspect-[3/4] bg-gray-800 rounded-lg mb-4 overflow-hidden">
                         <img 
                           src={novel.cover} 
                           alt={novel.title}
                           className="w-full h-full object-cover"
                         />
                       </div>
-                      <CardTitle className="text-lg font-serif line-clamp-2 text-gray-100">{novel.title}</CardTitle>
+                      <CardTitle className="text-lg font-serif line-clamp-2 text-white">{novel.title}</CardTitle>
                       <CardDescription className="text-gray-400">by {novel.author}</CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -132,11 +132,11 @@ const Index = () => {
       </section>
 
       {/* Content Sections */}
-      <section className="py-16 px-4 bg-gray-800/50">
+      <section className="py-16 px-4 bg-gray-950/50">
         <div className="max-w-6xl mx-auto">
           <div className="grid md:grid-cols-2 gap-8">
             {/* Recently Updated */}
-            <Card className="bg-gray-800 border-gray-700">
+            <Card className="bg-gray-950 border-gray-800">
               <CardHeader>
                 <CardTitle className="flex items-center text-blue-400">
                   <Clock className="mr-2 h-5 w-5" />
@@ -145,9 +145,9 @@ const Index = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 {recentlyUpdated.map((item) => (
-                  <div key={item.id} className="border-b border-gray-700 pb-3 last:border-b-0">
+                  <div key={item.id} className="border-b border-gray-800 pb-3 last:border-b-0">
                     <Link to={`/novel/${item.title.toLowerCase().replace(/\s+/g, '-')}`} className="hover:text-blue-400">
-                      <h4 className="font-medium mb-1 text-gray-200">{item.title}</h4>
+                      <h4 className="font-medium mb-1 text-white">{item.title}</h4>
                       <p className="text-sm text-gray-400 mb-1">{item.chapter}</p>
                       <p className="text-xs text-gray-500">{item.time}</p>
                     </Link>
@@ -157,7 +157,7 @@ const Index = () => {
             </Card>
 
             {/* Popular This Week */}
-            <Card className="bg-gray-800 border-gray-700">
+            <Card className="bg-gray-950 border-gray-800">
               <CardHeader>
                 <CardTitle className="flex items-center text-blue-400">
                   <TrendingUp className="mr-2 h-5 w-5" />
@@ -166,13 +166,13 @@ const Index = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 {popularThisWeek.map((item, index) => (
-                  <div key={item.id} className="flex items-center gap-3 border-b border-gray-700 pb-3 last:border-b-0">
+                  <div key={item.id} className="flex items-center gap-3 border-b border-gray-800 pb-3 last:border-b-0">
                     <div className="w-8 h-8 bg-blue-900 rounded-full flex items-center justify-center text-blue-400 font-bold">
                       {index + 1}
                     </div>
                     <div className="flex-1">
                       <Link to={`/novel/${item.title.toLowerCase().replace(/\s+/g, '-')}`} className="hover:text-blue-400">
-                        <h4 className="font-medium text-gray-200">{item.title}</h4>
+                        <h4 className="font-medium text-white">{item.title}</h4>
                         <div className="flex items-center gap-3 text-sm text-gray-400">
                           <span>{item.views} views</span>
                           <div className="flex items-center">

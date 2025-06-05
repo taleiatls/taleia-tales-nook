@@ -83,7 +83,7 @@ const ChapterReader = () => {
 
   const themeClasses = {
     light: "bg-white text-gray-900",
-    dark: "bg-gray-900 text-gray-100",
+    dark: "bg-black text-white",
     comfort: "bg-amber-50 text-amber-900"
   };
 
@@ -96,7 +96,7 @@ const ChapterReader = () => {
     <div className={`min-h-screen transition-all duration-300 ${themeClasses[theme as keyof typeof themeClasses]}`}>
       {/* Header */}
       <header className={`sticky top-0 z-50 border-b backdrop-blur-md ${
-        theme === "dark" ? "bg-gray-900/80 border-gray-700" : 
+        theme === "dark" ? "bg-black/80 border-gray-800" : 
         theme === "comfort" ? "bg-amber-50/80 border-amber-200" :
         "bg-white/80 border-gray-200"
       }`}>
@@ -284,10 +284,14 @@ const ChapterReader = () => {
         </div>
 
         {/* Navigation */}
-        <div className="flex justify-between items-center mt-12 pt-8 border-t border-gray-700">
+        <div className="flex justify-between items-center mt-12 pt-8 border-t border-gray-800">
           {prevChapter ? (
             <Link to={`/novel/${id}/chapter/${prevChapter}`}>
-              <Button variant="outline" className={`flex items-center gap-2 ${theme === "dark" ? "border-gray-600 text-gray-300 hover:bg-gray-800" : ""}`}>
+              <Button variant="outline" className={`flex items-center gap-2 ${
+                theme === "dark" ? "border-gray-600 text-white hover:bg-gray-900" : 
+                theme === "comfort" ? "border-amber-300 text-amber-900 hover:bg-amber-100" :
+                "border-gray-300 text-gray-900 hover:bg-gray-50"
+              }`}>
                 <ChevronLeft className="h-4 w-4" />
                 Previous Chapter
               </Button>
@@ -298,7 +302,11 @@ const ChapterReader = () => {
 
           {nextChapter ? (
             <Link to={`/novel/${id}/chapter/${nextChapter}`}>
-              <Button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700">
+              <Button className={`flex items-center gap-2 ${
+                theme === "dark" ? "bg-blue-600 hover:bg-blue-700 text-white" :
+                theme === "comfort" ? "bg-amber-600 hover:bg-amber-700 text-white" :
+                "bg-blue-600 hover:bg-blue-700 text-white"
+              }`}>
                 Next Chapter
                 <ChevronRight className="h-4 w-4" />
               </Button>
