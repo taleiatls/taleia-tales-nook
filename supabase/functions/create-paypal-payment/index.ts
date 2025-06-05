@@ -150,21 +150,37 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
-    const { error: insertError } = await supabaseService.from("paypal_payments").insert({
+    console.log("Storing payment record in database...");
+    
+    const paymentRecord = {
       user_id: user.id,
       paypal_order_id: paymentResult.id,
       coins: totalCoins,
       amount_usd: price,
       package_id: packageId,
       status: "pending",
-    });
+    };
+
+    console.log("Payment record data:", paymentRecord);
+
+    const { data: insertData, error: insertError } = await supabaseService
+      .from("paypal_payments")
+      .insert(paymentRecord)
+      .select()
+      .single();
 
     if (insertError) {
       console.error("Error storing payment record:", insertError);
-      throw new Error(`Failed to store payment record: ${insertError.message}`);
+      console.error("Insert error details:", {
+        message: insertError.message,
+        details: insertError.details,
+        hint: insertError.hint,
+        code: insertError.code
+      });
+      throw new Error(`Failed to store payment record: ${insertError.message || 'Unknown database error'}`);
     }
 
-    console.log("Payment record stored successfully");
+    console.log("Payment record stored successfully:", insertData);
 
     return new Response(
       JSON.stringify({ 
