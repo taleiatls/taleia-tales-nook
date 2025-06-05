@@ -39,7 +39,7 @@ serve(async (req) => {
     const { data } = await supabaseClient.auth.getUser(token);
     const user = data.user;
 
-    if (!user?.email) {
+    if (!user?.id) {
       throw new Error("User not authenticated");
     }
 
@@ -143,7 +143,7 @@ serve(async (req) => {
       throw new Error("No approval URL returned from PayPal");
     }
 
-    // Store payment info in database
+    // Store payment info in database using service role key
     const supabaseService = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
@@ -161,7 +161,7 @@ serve(async (req) => {
 
     if (insertError) {
       console.error("Error storing payment record:", insertError);
-      throw new Error("Failed to store payment record");
+      throw new Error(`Failed to store payment record: ${insertError.message}`);
     }
 
     console.log("Payment record stored successfully");

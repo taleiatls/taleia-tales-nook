@@ -72,7 +72,7 @@ serve(async (req) => {
       throw new Error(`Payment was not completed successfully. Status: ${captureData.status}`);
     }
 
-    // Update payment record and add coins
+    // Update payment record and add coins using service role
     const supabaseService = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
