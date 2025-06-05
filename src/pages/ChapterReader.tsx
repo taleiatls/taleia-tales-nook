@@ -181,12 +181,13 @@ const ChapterReader = () => {
         if (error) throw error;
         
         if (data) {
-          setReadingSettings({
+          const newSettings = {
             font_size: data.font_size,
             font_family: data.font_family,
             line_height: data.line_height,
             theme: data.theme as 'light' | 'dark' | 'comfort'
-          });
+          };
+          setReadingSettings(newSettings);
         }
       } catch (error) {
         console.error("Error fetching reading settings:", error);
@@ -196,11 +197,11 @@ const ChapterReader = () => {
 
   useEffect(() => {
     fetchChapterData();
-  }, [id, chapterId]); // Simplified dependencies
+  }, [id, chapterId]);
 
   useEffect(() => {
     fetchReadingSettings();
-  }, [user?.id]); // Simplified dependencies
+  }, [fetchReadingSettings]);
 
   const handleUnlockSuccess = useCallback(() => {
     setIsUnlocked(true);
@@ -208,6 +209,7 @@ const ChapterReader = () => {
   }, []);
 
   const handleSettingsChange = useCallback((newSettings: ReadingSettings) => {
+    console.log("Settings changed:", newSettings);
     setReadingSettings(newSettings);
   }, []);
 
@@ -282,6 +284,17 @@ const ChapterReader = () => {
     }
   };
 
+  const getFontFamily = () => {
+    switch (readingSettings.font_family) {
+      case 'sans-serif':
+        return 'font-sans';
+      case 'monospace':
+        return 'font-mono';
+      default:
+        return 'font-serif';
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
       <Navbar />
@@ -321,21 +334,22 @@ const ChapterReader = () => {
         </div>
 
         {/* Chapter Content */}
-        <Card className="mb-8 bg-gray-800 border-gray-700">
-          <CardContent className="p-4 md:p-8">
+        <Card className="mb-8 bg-gray-800 border-gray-700 overflow-hidden">
+          <CardContent className="p-0">
             <div 
-              className={`prose prose-invert max-w-none ${getThemeClasses()}`}
+              className={`p-4 md:p-8 ${getThemeClasses()} ${getFontFamily()}`}
               style={{
-                fontFamily: readingSettings.font_family,
                 fontSize: `${readingSettings.font_size}px`,
                 lineHeight: readingSettings.line_height
               }}
             >
-              {chapter.content.split('\n').map((paragraph, index) => (
-                <p key={index} className="mb-4">
-                  {paragraph}
-                </p>
-              ))}
+              <div className="prose prose-lg max-w-none">
+                {chapter.content.split('\n').map((paragraph, index) => (
+                  <p key={index} className="mb-4 leading-relaxed">
+                    {paragraph}
+                  </p>
+                ))}
+              </div>
             </div>
           </CardContent>
         </Card>
