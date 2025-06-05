@@ -90,6 +90,9 @@ serve(async (req) => {
     const tokenData: PayPalAccessTokenResponse = await tokenResponse.json();
     console.log("Successfully got PayPal access token");
 
+    // Get the origin for return/cancel URLs
+    const origin = req.headers.get("origin") || "https://0b22bd10-10fb-4ca4-ae09-c33111b0a296.lovableproject.com";
+
     // Create PayPal payment
     const paymentData = {
       intent: "CAPTURE",
@@ -104,11 +107,12 @@ serve(async (req) => {
         },
       ],
       application_context: {
-        return_url: `${req.headers.get("origin")}/payment-success`,
-        cancel_url: `${req.headers.get("origin")}/store`,
+        return_url: `${origin}/payment-success`,
+        cancel_url: `${origin}/store`,
         brand_name: "TaleiaTLS Novel Reader",
         landing_page: "NO_PREFERENCE",
         user_action: "PAY_NOW",
+        shipping_preference: "NO_SHIPPING",
       },
     };
 
@@ -120,6 +124,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${tokenData.access_token}`,
         "Accept": "application/json",
+        "PayPal-Request-Id": `${user.id}_${Date.now()}`, // Idempotency key
       },
       body: JSON.stringify(paymentData),
     });

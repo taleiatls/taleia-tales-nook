@@ -234,6 +234,42 @@ export type Database = {
         }
         Relationships: []
       }
+      paypal_payments: {
+        Row: {
+          amount_usd: number
+          captured_at: string | null
+          coins: number
+          created_at: string
+          id: string
+          package_id: string
+          paypal_order_id: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          amount_usd: number
+          captured_at?: string | null
+          coins: number
+          created_at?: string
+          id?: string
+          package_id: string
+          paypal_order_id: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          amount_usd?: number
+          captured_at?: string | null
+          coins?: number
+          created_at?: string
+          id?: string
+          package_id?: string
+          paypal_order_id?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
