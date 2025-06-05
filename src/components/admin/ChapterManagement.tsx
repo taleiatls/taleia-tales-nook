@@ -31,10 +31,12 @@ interface Novel {
 
 const ChapterManagement = () => {
   const [chapters, setChapters] = useState<Chapter[]>([]);
+  const [filteredChapters, setFilteredChapters] = useState<Chapter[]>([]);
   const [novels, setNovels] = useState<Novel[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingChapter, setEditingChapter] = useState<Chapter | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedNovelFilter, setSelectedNovelFilter] = useState<string>("all");
   const [formData, setFormData] = useState({
     title: "",
     chapter_number: "",
@@ -48,6 +50,18 @@ const ChapterManagement = () => {
     fetchChapters();
     fetchNovels();
   }, []);
+
+  useEffect(() => {
+    filterChapters();
+  }, [chapters, selectedNovelFilter]);
+
+  const filterChapters = () => {
+    if (selectedNovelFilter === "all") {
+      setFilteredChapters(chapters);
+    } else {
+      setFilteredChapters(chapters.filter(chapter => chapter.novel_id === selectedNovelFilter));
+    }
+  };
 
   const fetchChapters = async () => {
     try {
@@ -187,100 +201,118 @@ const ChapterManagement = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold text-gray-200">Manage Chapters</h3>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={() => resetForm()}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Chapter
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="bg-gray-800 border-gray-700 text-gray-200 max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>{editingChapter ? 'Edit Chapter' : 'Add New Chapter'}</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <Label htmlFor="novel_id">Novel</Label>
-                <Select value={formData.novel_id} onValueChange={(value) => setFormData({ ...formData, novel_id: value })}>
-                  <SelectTrigger className="bg-gray-700 border-gray-600">
-                    <SelectValue placeholder="Select a novel" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {novels.map((novel) => (
-                      <SelectItem key={novel.id} value={novel.id}>
-                        {novel.title}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Label htmlFor="novel-filter" className="text-gray-200">Filter by Novel:</Label>
+            <Select value={selectedNovelFilter} onValueChange={setSelectedNovelFilter}>
+              <SelectTrigger className="bg-gray-700 border-gray-600 text-gray-200 w-48">
+                <SelectValue placeholder="Select novel" />
+              </SelectTrigger>
+              <SelectContent className="bg-gray-700 border-gray-600">
+                <SelectItem value="all">All Novels</SelectItem>
+                {novels.map((novel) => (
+                  <SelectItem key={novel.id} value={novel.id}>
+                    {novel.title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={() => resetForm()}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Chapter
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="bg-gray-800 border-gray-700 text-gray-200 max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>{editingChapter ? 'Edit Chapter' : 'Add New Chapter'}</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <Label htmlFor="title">Title</Label>
-                  <Input
-                    id="title"
-                    value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    required
-                    className="bg-gray-700 border-gray-600"
-                  />
+                  <Label htmlFor="novel_id">Novel</Label>
+                  <Select value={formData.novel_id} onValueChange={(value) => setFormData({ ...formData, novel_id: value })}>
+                    <SelectTrigger className="bg-gray-700 border-gray-600">
+                      <SelectValue placeholder="Select a novel" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {novels.map((novel) => (
+                        <SelectItem key={novel.id} value={novel.id}>
+                          {novel.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="title">Title</Label>
+                    <Input
+                      id="title"
+                      value={formData.title}
+                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                      required
+                      className="bg-gray-700 border-gray-600"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="chapter_number">Chapter Number</Label>
+                    <Input
+                      id="chapter_number"
+                      type="number"
+                      value={formData.chapter_number}
+                      onChange={(e) => setFormData({ ...formData, chapter_number: e.target.value })}
+                      required
+                      className="bg-gray-700 border-gray-600"
+                    />
+                  </div>
                 </div>
                 <div>
-                  <Label htmlFor="chapter_number">Chapter Number</Label>
-                  <Input
-                    id="chapter_number"
-                    type="number"
-                    value={formData.chapter_number}
-                    onChange={(e) => setFormData({ ...formData, chapter_number: e.target.value })}
+                  <Label htmlFor="content">Content</Label>
+                  <Textarea
+                    id="content"
+                    value={formData.content}
+                    onChange={(e) => setFormData({ ...formData, content: e.target.value })}
                     required
-                    className="bg-gray-700 border-gray-600"
+                    className="bg-gray-700 border-gray-600 min-h-32"
                   />
                 </div>
-              </div>
-              <div>
-                <Label htmlFor="content">Content</Label>
-                <Textarea
-                  id="content"
-                  value={formData.content}
-                  onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                  required
-                  className="bg-gray-700 border-gray-600 min-h-32"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="coin_price">Coin Price</Label>
-                  <Input
-                    id="coin_price"
-                    type="number"
-                    value={formData.coin_price}
-                    onChange={(e) => setFormData({ ...formData, coin_price: e.target.value })}
-                    required
-                    className="bg-gray-700 border-gray-600"
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="coin_price">Coin Price</Label>
+                    <Input
+                      id="coin_price"
+                      type="number"
+                      value={formData.coin_price}
+                      onChange={(e) => setFormData({ ...formData, coin_price: e.target.value })}
+                      required
+                      className="bg-gray-700 border-gray-600"
+                    />
+                  </div>
+                  <div className="flex items-center space-x-2 pt-6">
+                    <input
+                      type="checkbox"
+                      id="is_locked"
+                      checked={formData.is_locked}
+                      onChange={(e) => setFormData({ ...formData, is_locked: e.target.checked })}
+                      className="rounded border-gray-600"
+                    />
+                    <Label htmlFor="is_locked">Locked (requires coins)</Label>
+                  </div>
                 </div>
-                <div className="flex items-center space-x-2 pt-6">
-                  <input
-                    type="checkbox"
-                    id="is_locked"
-                    checked={formData.is_locked}
-                    onChange={(e) => setFormData({ ...formData, is_locked: e.target.checked })}
-                    className="rounded border-gray-600"
-                  />
-                  <Label htmlFor="is_locked">Locked (requires coins)</Label>
+                <div className="flex justify-end space-x-2">
+                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit">
+                    {editingChapter ? 'Update' : 'Create'}
+                  </Button>
                 </div>
-              </div>
-              <div className="flex justify-end space-x-2">
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit">
-                  {editingChapter ? 'Update' : 'Create'}
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <div className="border border-gray-700 rounded-lg overflow-hidden">
@@ -296,7 +328,7 @@ const ChapterManagement = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {chapters.map((chapter) => (
+            {filteredChapters.map((chapter) => (
               <TableRow key={chapter.id} className="border-gray-700">
                 <TableCell className="text-gray-200">{chapter.novels?.title}</TableCell>
                 <TableCell className="text-gray-200">Ch. {chapter.chapter_number}</TableCell>
