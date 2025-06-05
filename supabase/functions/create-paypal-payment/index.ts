@@ -93,7 +93,7 @@ serve(async (req) => {
     // Get the origin for return/cancel URLs
     const origin = "https://0b22bd10-10fb-4ca4-ae09-c33111b0a296.lovableproject.com";
 
-    // Create simplified PayPal payment - removing problematic fields
+    // Create minimal PayPal payment configuration
     const paymentData = {
       intent: "CAPTURE",
       purchase_units: [
@@ -102,26 +102,22 @@ serve(async (req) => {
             currency_code: "USD",
             value: price.toFixed(2),
           },
-          description: `${totalCoins} coins (${coins} + ${bonus || 0} bonus)`,
         },
       ],
       application_context: {
         return_url: `${origin}/payment-success`,
         cancel_url: `${origin}/store`,
-        brand_name: "TaleiaTLS Novel Reader",
         user_action: "PAY_NOW",
-        shipping_preference: "NO_SHIPPING",
       },
     };
 
-    console.log("Creating PayPal order with simplified data:", JSON.stringify(paymentData, null, 2));
+    console.log("Creating PayPal order with minimal data:", JSON.stringify(paymentData, null, 2));
 
     const paymentResponse = await fetch(`${paypalBaseUrl}/v2/checkout/orders`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${tokenData.access_token}`,
-        "Accept": "application/json",
       },
       body: JSON.stringify(paymentData),
     });
@@ -136,6 +132,7 @@ serve(async (req) => {
 
     const paymentResult = await paymentResponse.json();
     console.log("PayPal payment created successfully:", paymentResult.id);
+    console.log("PayPal response links:", paymentResult.links);
 
     // Find the approval URL
     const approvalUrl = paymentResult.links?.find((link: any) => link.rel === "approve")?.href;
@@ -144,6 +141,8 @@ serve(async (req) => {
       console.error("No approval URL in PayPal response:", paymentResult);
       throw new Error("No approval URL returned from PayPal");
     }
+
+    console.log("PayPal approval URL:", approvalUrl);
 
     // Store payment info in database using service role key
     const supabaseService = createClient(
