@@ -18,10 +18,11 @@ interface ReadingSettings {
 }
 
 interface SettingsModalProps {
+  currentSettings?: ReadingSettings;
   onSettingsChange?: (settings: ReadingSettings) => void;
 }
 
-const SettingsModal = ({ onSettingsChange }: SettingsModalProps) => {
+const SettingsModal = ({ currentSettings, onSettingsChange }: SettingsModalProps) => {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [settings, setSettings] = useState<ReadingSettings>({
@@ -34,45 +35,52 @@ const SettingsModal = ({ onSettingsChange }: SettingsModalProps) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchSettings = async () => {
-      if (user) {
-        try {
-          const { data, error } = await supabase
-            .from('user_reading_settings')
-            .select('*')
-            .eq('user_id', user.id)
-            .maybeSingle();
+    if (currentSettings) {
+      setSettings(currentSettings);
+      setIsLoading(false);
+    } else {
+      const fetchSettings = async () => {
+        if (user) {
+          try {
+            const { data, error } = await supabase
+              .from('user_reading_settings')
+              .select('*')
+              .eq('user_id', user.id)
+              .maybeSingle();
 
-          if (error) throw error;
-          
-          if (data) {
-            const newSettings = {
-              font_size: data.font_size,
-              font_family: data.font_family,
-              line_height: data.line_height,
-              theme: data.theme as 'light' | 'dark' | 'comfort'
-            };
-            setSettings(newSettings);
-            onSettingsChange?.(newSettings);
+            if (error) throw error;
+            
+            if (data) {
+              const newSettings = {
+                font_size: data.font_size,
+                font_family: data.font_family,
+                line_height: data.line_height,
+                theme: data.theme as 'light' | 'dark' | 'comfort'
+              };
+              setSettings(newSettings);
+              onSettingsChange?.(newSettings);
+            }
+          } catch (error) {
+            console.error("Error fetching reading settings:", error);
+          } finally {
+            setIsLoading(false);
           }
-        } catch (error) {
-          console.error("Error fetching reading settings:", error);
-        } finally {
+        } else {
           setIsLoading(false);
         }
-      } else {
-        setIsLoading(false);
-      }
-    };
+      };
 
-    if (open) {
-      fetchSettings();
+      if (open) {
+        fetchSettings();
+      }
     }
-  }, [user, open, onSettingsChange]);
+  }, [user, open, currentSettings, onSettingsChange]);
 
   const saveSettings = async () => {
     if (!user) {
-      toast.error("Please sign in to save settings");
+      toast.success("Settings applied temporarily");
+      onSettingsChange?.(settings);
+      setOpen(false);
       return;
     }
     
