@@ -32,13 +32,22 @@ interface Novel {
   total_chapters: number;
 }
 
+interface ChapterListItem {
+  id: string;
+  chapter_number: number;
+  title: string;
+  created_at: string;
+  is_locked: boolean;
+  coin_price: number;
+}
+
 const ChapterReader = () => {
   const { id, chapterId } = useParams<{ id: string; chapterId: string }>();
   const { user } = useAuth();
   const { checkChapterPurchased } = useCoins();
   const [chapter, setChapter] = useState<Chapter | null>(null);
   const [novel, setNovel] = useState<Novel | null>(null);
-  const [allChapters, setAllChapters] = useState<Chapter[]>([]);
+  const [allChapters, setAllChapters] = useState<ChapterListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [checkingAccess, setCheckingAccess] = useState(true);

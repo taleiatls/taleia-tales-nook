@@ -6,9 +6,8 @@ import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/co
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { List, Lock } from "lucide-react";
-import { slugify } from "@/lib/slugify";
 
-interface Chapter {
+interface ChapterListItem {
   id: string;
   chapter_number: number;
   title: string;
@@ -18,7 +17,7 @@ interface Chapter {
 }
 
 interface ChapterListSliderProps {
-  chapters: Chapter[];
+  chapters: ChapterListItem[];
   currentChapter: number;
   novelTitle: string;
   novelSlug: string;
