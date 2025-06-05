@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,6 +6,7 @@ import { BookOpen, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import Navbar from "@/components/Navbar";
 import { supabase } from "@/integrations/supabase/client";
+import HomeBannerAd from "@/components/ads/HomeBannerAd";
 import {
   Pagination,
   PaginationContent,
@@ -175,6 +175,9 @@ const Index = () => {
           )}
         </div>
       </section>
+
+      {/* Ad Banner - Placed between featured content and main content */}
+      <HomeBannerAd />
 
       <div className="max-w-6xl mx-auto px-4 grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Recently Updated */}

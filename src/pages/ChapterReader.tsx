@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,6 +8,7 @@ import Navbar from "@/components/Navbar";
 import LockedChapter from "@/components/LockedChapter";
 import ChapterListSlider from "@/components/ChapterListSlider";
 import SettingsModal from "@/components/SettingsModal";
+import ChapterSidebarAd from "@/components/ads/ChapterSidebarAd";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCoins } from "@/hooks/useCoins";
@@ -299,92 +299,104 @@ const ChapterReader = () => {
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
       <Navbar />
       
-      <div className="max-w-4xl mx-auto px-4 py-4 md:py-8">
-        {/* Header */}
-        <div className="mb-6">
-          <Link to={`/novel/${novelSlug}`}>
-            <Button variant="outline" className="mb-4 border-gray-600 text-gray-300 hover:bg-gray-700">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              <span className="hidden sm:inline">Back to {novel.title}</span>
-              <span className="sm:hidden">Back</span>
-            </Button>
-          </Link>
-          
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4">
-            <div className="flex-1">
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-100 mb-2">{chapter.title}</h1>
-              <p className="text-gray-400 text-sm md:text-base">
-                Chapter {chapter.chapter_number} of {novel.total_chapters}
-              </p>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <SettingsModal 
-                currentSettings={readingSettings}
-                onSettingsChange={handleSettingsChange} 
-              />
-              <ChapterListSlider
-                chapters={allChapters}
-                currentChapter={chapter.chapter_number}
-                novelTitle={novel.title}
-                novelSlug={novelSlug}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Chapter Content */}
-        <Card className="mb-8 bg-gray-800 border-gray-700 overflow-hidden">
-          <CardContent className="p-0">
-            <div 
-              className={`p-4 md:p-8 ${getThemeClasses()} ${getFontFamily()}`}
-              style={{
-                fontSize: `${readingSettings.font_size}px`,
-                lineHeight: readingSettings.line_height
-              }}
-            >
-              <div className="prose prose-lg max-w-none">
-                {chapter.content.split('\n').map((paragraph, index) => (
-                  <p key={index} className="mb-4 leading-relaxed">
-                    {paragraph}
+      <div className="max-w-7xl mx-auto px-4 py-4 md:py-8">
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
+          {/* Main Content */}
+          <div className="xl:col-span-3">
+            {/* Header */}
+            <div className="mb-6">
+              <Link to={`/novel/${novelSlug}`}>
+                <Button variant="outline" className="mb-4 border-gray-600 text-gray-300 hover:bg-gray-700">
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  <span className="hidden sm:inline">Back to {novel.title}</span>
+                  <span className="sm:hidden">Back</span>
+                </Button>
+              </Link>
+              
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4">
+                <div className="flex-1">
+                  <h1 className="text-2xl md:text-3xl font-bold text-gray-100 mb-2">{chapter.title}</h1>
+                  <p className="text-gray-400 text-sm md:text-base">
+                    Chapter {chapter.chapter_number} of {novel.total_chapters}
                   </p>
-                ))}
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <SettingsModal 
+                    currentSettings={readingSettings}
+                    onSettingsChange={handleSettingsChange} 
+                  />
+                  <ChapterListSlider
+                    chapters={allChapters}
+                    currentChapter={chapter.chapter_number}
+                    novelTitle={novel.title}
+                    novelSlug={novelSlug}
+                  />
+                </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Navigation - Mobile Friendly */}
-        <div className="flex justify-between items-center gap-4">
-          {/* Previous Chapter */}
-          {prevChapter ? (
-            <Link to={`/novel/${novelSlug}/chapter/${prevChapter}`}>
-              <Button
-                variant="outline"
-                className="min-w-[44px] px-3 sm:px-5 py-2 border-gray-600 text-gray-300 hover:bg-gray-700 flex items-center justify-center"
-              >
-                <ArrowLeft className="h-5 w-5" />
-                <span className="hidden sm:inline ml-2">Previous</span>
-              </Button>
-            </Link>
-          ) : (
-            <div />
-          )}
+            {/* Chapter Content */}
+            <Card className="mb-8 bg-gray-800 border-gray-700 overflow-hidden">
+              <CardContent className="p-0">
+                <div 
+                  className={`p-4 md:p-8 ${getThemeClasses()} ${getFontFamily()}`}
+                  style={{
+                    fontSize: `${readingSettings.font_size}px`,
+                    lineHeight: readingSettings.line_height
+                  }}
+                >
+                  <div className="prose prose-lg max-w-none">
+                    {chapter.content.split('\n').map((paragraph, index) => (
+                      <p key={index} className="mb-4 leading-relaxed">
+                        {paragraph}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-          {/* Next Chapter */}
-          {nextChapter ? (
-            <Link to={`/novel/${novelSlug}/chapter/${nextChapter}`}>
-              <Button
-                variant="outline"
-                className="min-w-[44px] px-3 sm:px-5 py-2 border-gray-600 text-gray-300 hover:bg-gray-700 flex items-center justify-center"
-              >
-                <span className="hidden sm:inline mr-2">Next</span>
-                <ArrowRight className="h-5 w-5" />
-              </Button>
-            </Link>
-          ) : (
-            <div />
-          )}
+            {/* Navigation - Mobile Friendly */}
+            <div className="flex justify-between items-center gap-4">
+              {/* Previous Chapter */}
+              {prevChapter ? (
+                <Link to={`/novel/${novelSlug}/chapter/${prevChapter}`}>
+                  <Button
+                    variant="outline"
+                    className="min-w-[44px] px-3 sm:px-5 py-2 border-gray-600 text-gray-300 hover:bg-gray-700 flex items-center justify-center"
+                  >
+                    <ArrowLeft className="h-5 w-5" />
+                    <span className="hidden sm:inline ml-2">Previous</span>
+                  </Button>
+                </Link>
+              ) : (
+                <div />
+              )}
+
+              {/* Next Chapter */}
+              {nextChapter ? (
+                <Link to={`/novel/${novelSlug}/chapter/${nextChapter}`}>
+                  <Button
+                    variant="outline"
+                    className="min-w-[44px] px-3 sm:px-5 py-2 border-gray-600 text-gray-300 hover:bg-gray-700 flex items-center justify-center"
+                  >
+                    <span className="hidden sm:inline mr-2">Next</span>
+                    <ArrowRight className="h-5 w-5" />
+                  </Button>
+                </Link>
+              ) : (
+                <div />
+              )}
+            </div>
+          </div>
+
+          {/* Sidebar with Ad - Hidden on mobile, visible on xl screens */}
+          <div className="hidden xl:block xl:col-span-1">
+            <div className="sticky top-8">
+              <ChapterSidebarAd />
+            </div>
+          </div>
         </div>
       </div>
     </div>
