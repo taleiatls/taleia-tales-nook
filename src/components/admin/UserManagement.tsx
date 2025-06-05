@@ -85,7 +85,7 @@ const UserManagement = () => {
 
       if (error) throw error;
 
-      const response = data as CoinAdjustmentResponse;
+      const response = data as unknown as CoinAdjustmentResponse;
       
       if (response?.success) {
         toast.success(`Coins adjusted successfully. New balance: ${response.new_balance}`);
