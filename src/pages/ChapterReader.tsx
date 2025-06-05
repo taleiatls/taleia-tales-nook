@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCoins } from "@/hooks/useCoins";
 import { isUUID, slugify } from "@/lib/slugify";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Chapter {
   id: string;
@@ -54,6 +55,7 @@ const ChapterReader = () => {
   const { id, chapterId } = useParams<{ id: string; chapterId: string }>();
   const { user } = useAuth();
   const { checkChapterPurchased } = useCoins();
+  const isMobile = useIsMobile();
   const [chapter, setChapter] = useState<Chapter | null>(null);
   const [novel, setNovel] = useState<Novel | null>(null);
   const [allChapters, setAllChapters] = useState<ChapterListItem[]>([]);
@@ -300,7 +302,7 @@ const ChapterReader = () => {
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
       <Navbar />
       
-      <div className="max-w-7xl mx-auto px-4 py-4 md:py-8">
+      <div className={`max-w-7xl mx-auto px-4 py-4 md:py-8 ${isMobile ? 'pb-20' : ''}`}>
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
           {/* Main Content */}
           <div className="xl:col-span-3">
