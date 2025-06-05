@@ -40,7 +40,6 @@ interface Chapter {
   novel_id: string;
   chapter_number: number;
   title: string;
-  views: number;
   created_at: string;
   is_locked: boolean;
   coin_price: number;
@@ -124,10 +123,10 @@ const NovelPage = () => {
 
           // Continue with the rest of the data fetching for the found novel
           if (matchingNovel) {
-            // Fetch chapters - include all fields needed for locked chapter display
+            // Fetch chapters
             const { data: chaptersData, error: chaptersError } = await supabase
               .from('chapters')
-              .select('id, novel_id, chapter_number, title, views, created_at, is_locked, coin_price')
+              .select('id, novel_id, chapter_number, title, created_at, is_locked, coin_price')
               .eq('novel_id', matchingNovel.id)
               .order('chapter_number', { ascending: true });
 
@@ -147,6 +146,19 @@ const NovelPage = () => {
 
             if (reviewsError) throw reviewsError;
             setReviews(reviewsData || []);
+
+            // Calculate average rating and total ratings
+            if (reviewsData && reviewsData.length > 0) {
+              const totalRating = reviewsData.reduce((sum, review) => sum + review.rating, 0);
+              const avgRating = totalRating / reviewsData.length;
+              
+              // Update the novel object with calculated ratings
+              setNovel(prev => prev ? {
+                ...prev,
+                average_rating: avgRating,
+                total_ratings: reviewsData.length
+              } : null);
+            }
 
             // Check if user has already reviewed this novel
             if (user && reviewsData) {
@@ -180,10 +192,10 @@ const NovelPage = () => {
         console.log("Found novel:", novelData);
         setNovel(novelData);
 
-        // Fetch chapters - include all fields needed for locked chapter display
+        // Fetch chapters
         const { data: chaptersData, error: chaptersError } = await supabase
           .from('chapters')
-          .select('id, novel_id, chapter_number, title, views, created_at, is_locked, coin_price')
+          .select('id, novel_id, chapter_number, title, created_at, is_locked, coin_price')
           .eq('novel_id', novelData.id)
           .order('chapter_number', { ascending: true });
 
@@ -203,6 +215,19 @@ const NovelPage = () => {
 
         if (reviewsError) throw reviewsError;
         setReviews(reviewsData || []);
+
+        // Calculate average rating and total ratings
+        if (reviewsData && reviewsData.length > 0) {
+          const totalRating = reviewsData.reduce((sum, review) => sum + review.rating, 0);
+          const avgRating = totalRating / reviewsData.length;
+          
+          // Update the novel object with calculated ratings
+          setNovel(prev => prev ? {
+            ...prev,
+            average_rating: avgRating,
+            total_ratings: reviewsData.length
+          } : null);
+        }
 
         // Check if user has already reviewed this novel
         if (user && reviewsData) {
@@ -286,6 +311,18 @@ const NovelPage = () => {
       if (reviewsError) throw reviewsError;
       setReviews(updatedReviews || []);
 
+      // Recalculate ratings
+      if (updatedReviews && updatedReviews.length > 0) {
+        const totalRating = updatedReviews.reduce((sum, review) => sum + review.rating, 0);
+        const avgRating = totalRating / updatedReviews.length;
+        
+        setNovel(prev => prev ? {
+          ...prev,
+          average_rating: avgRating,
+          total_ratings: updatedReviews.length
+        } : null);
+      }
+
       // Update user's review state
       const userReview = updatedReviews?.find(review => review.user_id === user.id) || null;
       setExistingUserReview(userReview);
@@ -351,7 +388,9 @@ const NovelPage = () => {
                 <div className="flex items-center justify-center gap-2">
                   <div className="flex items-center">
                     <Star className="h-5 w-5 fill-yellow-400 text-yellow-400 mr-1" />
-                    <span className="font-medium text-gray-300">{novel.average_rating ? Number(novel.average_rating).toFixed(1) : '0.0'}</span>
+                    <span className="font-medium text-gray-300">
+                      {novel.average_rating ? Number(novel.average_rating).toFixed(1) : '0.0'}
+                    </span>
                     <span className="text-gray-500 ml-1">({novel.total_ratings || 0})</span>
                   </div>
                 </div>
@@ -366,10 +405,6 @@ const NovelPage = () => {
                   <div>
                     <span className="text-gray-500">Chapters:</span>
                     <span className="ml-2 text-gray-300">{chapters.length}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">Views:</span>
-                    <span className="ml-2 text-gray-300">{novel.total_views || 0}</span>
                   </div>
                 </div>
 
@@ -464,7 +499,6 @@ const NovelPage = () => {
                                     </div>
                                     <p className="text-sm text-gray-500">{formatDate(chapter.created_at)}</p>
                                   </div>
-                                  <span className="text-xs text-gray-400">{(chapter.views || 0).toLocaleString()} views</span>
                                 </div>
                               </div>
                             </Link>
