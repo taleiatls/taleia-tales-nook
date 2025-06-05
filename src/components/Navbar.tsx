@@ -6,7 +6,6 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { 
   Search, 
   Menu, 
-  BookOpen, 
   Home, 
   LogIn,
   LogOut,
@@ -91,7 +90,11 @@ const Navbar = () => {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
-            <BookOpen className="h-8 w-8 text-blue-400" />
+            <img 
+              src="/lovable-uploads/ff222b8a-1c63-4a30-92ca-ee02bd543023.png" 
+              alt="TaleiaTLS Logo" 
+              className="h-8 w-8"
+            />
             <span className="text-2xl font-bold text-white font-serif">TaleiaTLS</span>
           </Link>
 
