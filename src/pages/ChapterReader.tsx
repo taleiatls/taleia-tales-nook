@@ -302,7 +302,7 @@ const ChapterReader = () => {
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
       <Navbar />
       
-      <div className={`max-w-7xl mx-auto px-4 py-4 md:py-8 ${isMobile ? 'pb-10' : ''}`}>
+      <div className={`max-w-7xl mx-auto px-4 py-4 md:py-8 ${isMobile ? 'pb-40' : ''}`}>
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
           {/* Main Content */}
           <div className="xl:col-span-3">
