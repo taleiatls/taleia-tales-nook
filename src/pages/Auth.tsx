@@ -119,127 +119,127 @@ const Auth = () => {
         </div>
 
         <Card className="bg-gray-900 border-gray-700">
-          <CardHeader>
-            <Tabs defaultValue="login" value={activeTab} onValueChange={setActiveTab}>
+          <Tabs defaultValue="login" value={activeTab} onValueChange={setActiveTab}>
+            <CardHeader>
               <TabsList className="grid w-full grid-cols-2 bg-gray-800">
                 <TabsTrigger value="login" className="data-[state=active]:bg-blue-600">Login</TabsTrigger>
                 <TabsTrigger value="register" className="data-[state=active]:bg-blue-600">Register</TabsTrigger>
               </TabsList>
-            </Tabs>
-          </CardHeader>
-          
-          <CardContent>
-            <TabsContent value="login" className="mt-0">
-              <form onSubmit={handleLogin}>
-                <div className="space-y-4 mt-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="login-email" className="text-gray-300">Email</Label>
-                    <Input
-                      id="login-email"
-                      type="email"
-                      placeholder="you@example.com"
-                      value={loginEmail}
-                      onChange={(e) => setLoginEmail(e.target.value)}
-                      className="bg-gray-800 border-gray-700 text-white"
-                    />
-                    {formErrors.email && <p className="text-sm text-red-500">{formErrors.email}</p>}
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="login-password" className="text-gray-300">Password</Label>
-                    </div>
-                    <Input
-                      id="login-password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={loginPassword}
-                      onChange={(e) => setLoginPassword(e.target.value)}
-                      className="bg-gray-800 border-gray-700 text-white"
-                    />
-                    {formErrors.password && <p className="text-sm text-red-500">{formErrors.password}</p>}
-                  </div>
-                </div>
-                
-                <CardFooter className="px-0 pt-6">
-                  <Button 
-                    type="submit" 
-                    className="w-full bg-blue-600 hover:bg-blue-700"
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting ? "Signing In..." : "Sign In"}
-                  </Button>
-                </CardFooter>
-              </form>
-            </TabsContent>
+            </CardHeader>
             
-            <TabsContent value="register" className="mt-0">
-              <form onSubmit={handleRegister}>
-                <div className="space-y-4 mt-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="username" className="text-gray-300">Username</Label>
-                    <Input
-                      id="username"
-                      placeholder="coolreader123"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      className="bg-gray-800 border-gray-700 text-white"
-                    />
-                    {formErrors.username && <p className="text-sm text-red-500">{formErrors.username}</p>}
+            <CardContent>
+              <TabsContent value="login" className="mt-0">
+                <form onSubmit={handleLogin}>
+                  <div className="space-y-4 mt-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="login-email" className="text-gray-300">Email</Label>
+                      <Input
+                        id="login-email"
+                        type="email"
+                        placeholder="you@example.com"
+                        value={loginEmail}
+                        onChange={(e) => setLoginEmail(e.target.value)}
+                        className="bg-gray-800 border-gray-700 text-white"
+                      />
+                      {formErrors.email && <p className="text-sm text-red-500">{formErrors.email}</p>}
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="login-password" className="text-gray-300">Password</Label>
+                      </div>
+                      <Input
+                        id="login-password"
+                        type="password"
+                        placeholder="••••••••"
+                        value={loginPassword}
+                        onChange={(e) => setLoginPassword(e.target.value)}
+                        className="bg-gray-800 border-gray-700 text-white"
+                      />
+                      {formErrors.password && <p className="text-sm text-red-500">{formErrors.password}</p>}
+                    </div>
                   </div>
                   
-                  <div className="space-y-2">
-                    <Label htmlFor="register-email" className="text-gray-300">Email</Label>
-                    <Input
-                      id="register-email"
-                      type="email"
-                      placeholder="you@example.com"
-                      value={registerEmail}
-                      onChange={(e) => setRegisterEmail(e.target.value)}
-                      className="bg-gray-800 border-gray-700 text-white"
-                    />
-                    {formErrors.email && <p className="text-sm text-red-500">{formErrors.email}</p>}
+                  <CardFooter className="px-0 pt-6">
+                    <Button 
+                      type="submit" 
+                      className="w-full bg-blue-600 hover:bg-blue-700"
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? "Signing In..." : "Sign In"}
+                    </Button>
+                  </CardFooter>
+                </form>
+              </TabsContent>
+              
+              <TabsContent value="register" className="mt-0">
+                <form onSubmit={handleRegister}>
+                  <div className="space-y-4 mt-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="username" className="text-gray-300">Username</Label>
+                      <Input
+                        id="username"
+                        placeholder="coolreader123"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        className="bg-gray-800 border-gray-700 text-white"
+                      />
+                      {formErrors.username && <p className="text-sm text-red-500">{formErrors.username}</p>}
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="register-email" className="text-gray-300">Email</Label>
+                      <Input
+                        id="register-email"
+                        type="email"
+                        placeholder="you@example.com"
+                        value={registerEmail}
+                        onChange={(e) => setRegisterEmail(e.target.value)}
+                        className="bg-gray-800 border-gray-700 text-white"
+                      />
+                      {formErrors.email && <p className="text-sm text-red-500">{formErrors.email}</p>}
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="register-password" className="text-gray-300">Password</Label>
+                      <Input
+                        id="register-password"
+                        type="password"
+                        placeholder="••••••••"
+                        value={registerPassword}
+                        onChange={(e) => setRegisterPassword(e.target.value)}
+                        className="bg-gray-800 border-gray-700 text-white"
+                      />
+                      {formErrors.password && <p className="text-sm text-red-500">{formErrors.password}</p>}
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="confirm-password" className="text-gray-300">Confirm Password</Label>
+                      <Input
+                        id="confirm-password"
+                        type="password"
+                        placeholder="••••••••"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        className="bg-gray-800 border-gray-700 text-white"
+                      />
+                      {formErrors.confirmPassword && <p className="text-sm text-red-500">{formErrors.confirmPassword}</p>}
+                    </div>
                   </div>
                   
-                  <div className="space-y-2">
-                    <Label htmlFor="register-password" className="text-gray-300">Password</Label>
-                    <Input
-                      id="register-password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={registerPassword}
-                      onChange={(e) => setRegisterPassword(e.target.value)}
-                      className="bg-gray-800 border-gray-700 text-white"
-                    />
-                    {formErrors.password && <p className="text-sm text-red-500">{formErrors.password}</p>}
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="confirm-password" className="text-gray-300">Confirm Password</Label>
-                    <Input
-                      id="confirm-password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="bg-gray-800 border-gray-700 text-white"
-                    />
-                    {formErrors.confirmPassword && <p className="text-sm text-red-500">{formErrors.confirmPassword}</p>}
-                  </div>
-                </div>
-                
-                <CardFooter className="px-0 pt-6">
-                  <Button 
-                    type="submit" 
-                    className="w-full bg-blue-600 hover:bg-blue-700"
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting ? "Creating Account..." : "Create Account"}
-                  </Button>
-                </CardFooter>
-              </form>
-            </TabsContent>
-          </CardContent>
+                  <CardFooter className="px-0 pt-6">
+                    <Button 
+                      type="submit" 
+                      className="w-full bg-blue-600 hover:bg-blue-700"
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? "Creating Account..." : "Create Account"}
+                    </Button>
+                  </CardFooter>
+                </form>
+              </TabsContent>
+            </CardContent>
+          </Tabs>
         </Card>
       </div>
     </div>
