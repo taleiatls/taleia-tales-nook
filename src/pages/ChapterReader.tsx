@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCoins } from "@/hooks/useCoins";
 import LockedChapter from "@/components/LockedChapter";
+import { isUUID, slugify } from "@/lib/slugify";
 
 interface Chapter {
   id: string;
@@ -42,7 +43,7 @@ const defaultSettings: ReadingSettings = {
 };
 
 const ChapterReader = () => {
-  const { id: novelId, chapterId } = useParams();
+  const { id: novelIdOrSlug, chapterId } = useParams();
   const { user } = useAuth();
   const { checkChapterPurchased } = useCoins();
   const [chapter, setChapter] = useState<Chapter | null>(null);
@@ -57,6 +58,30 @@ const ChapterReader = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
+        let novelId = novelIdOrSlug;
+
+        // If the novelIdOrSlug is not a UUID, we need to find the novel by slug
+        if (!isUUID(novelIdOrSlug || '')) {
+          console.log("Looking up novel by slug:", novelIdOrSlug);
+          
+          const { data: novels, error: novelsError } = await supabase
+            .from('novels')
+            .select('id, title');
+
+          if (novelsError) throw novelsError;
+
+          const matchingNovel = novels?.find(novel => 
+            slugify(novel.title) === novelIdOrSlug
+          );
+
+          if (!matchingNovel) {
+            toast.error("Novel not found");
+            return;
+          }
+
+          novelId = matchingNovel.id;
+        }
+
         // Fetch novel info
         const { data: novelData, error: novelError } = await supabase
           .from('novels')
@@ -131,7 +156,7 @@ const ChapterReader = () => {
 
     fetchData();
     window.scrollTo(0, 0);
-  }, [novelId, chapterId, user, checkChapterPurchased]);
+  }, [novelIdOrSlug, chapterId, user, checkChapterPurchased]);
 
   const handleChapterUnlock = async () => {
     if (chapter) {
@@ -143,6 +168,9 @@ const ChapterReader = () => {
   const currentIndex = chapters.findIndex(c => c.chapter_number.toString() === chapterId);
   const prevChapter = currentIndex > 0 ? chapters[currentIndex - 1] : null;
   const nextChapter = currentIndex < chapters.length - 1 ? chapters[currentIndex + 1] : null;
+
+  // Generate slug for this novel for consistent URLs
+  const novelSlug = novel ? slugify(novel.title) : novelIdOrSlug;
 
   // Apply theme styles
   const getThemeStyles = () => {
@@ -168,7 +196,7 @@ const ChapterReader = () => {
       <div className={`sticky top-0 z-10 ${settings.theme === 'light' ? 'bg-white' : settings.theme === 'dark' ? 'bg-black' : 'bg-amber-100'} border-b ${settings.theme === 'light' ? 'border-gray-200' : settings.theme === 'dark' ? 'border-gray-800' : 'border-amber-200'}`}>
         <div className="container mx-auto px-4 py-2 flex items-center justify-between">
           <Link 
-            to={`/novel/${novelId}`} 
+            to={`/novel/${novelSlug}`} 
             className={`flex items-center ${settings.theme === 'light' ? 'text-blue-600' : settings.theme === 'dark' ? 'text-blue-400' : 'text-amber-800'}`}
           >
             <ArrowLeft className="h-5 w-5 mr-2" />
@@ -178,7 +206,7 @@ const ChapterReader = () => {
           {/* Chapter Navigation */}
           <div className="hidden md:flex items-center space-x-4">
             {prevChapter && (
-              <Link to={`/novel/${novelId}/chapter/${prevChapter.chapter_number}`}>
+              <Link to={`/novel/${novelSlug}/chapter/${prevChapter.chapter_number}`}>
                 <Button variant="outline" size="sm" className={settings.theme === 'dark' ? 'border-gray-700 text-gray-300' : ''}>
                   <ArrowLeft className="h-4 w-4 mr-1" />
                   Previous
@@ -193,7 +221,7 @@ const ChapterReader = () => {
             </Link>
             
             {nextChapter && (
-              <Link to={`/novel/${novelId}/chapter/${nextChapter.chapter_number}`}>
+              <Link to={`/novel/${novelSlug}/chapter/${nextChapter.chapter_number}`}>
                 <Button variant="outline" size="sm" className={settings.theme === 'dark' ? 'border-gray-700 text-gray-300' : ''}>
                   Next
                   <ArrowRight className="h-4 w-4 ml-1" />
@@ -222,7 +250,7 @@ const ChapterReader = () => {
                     {chapters.map((c) => (
                       <Link
                         key={c.id}
-                        to={`/novel/${novelId}/chapter/${c.chapter_number}`}
+                        to={`/novel/${novelSlug}/chapter/${c.chapter_number}`}
                         className={`block py-2 px-3 rounded-md ${
                           c.chapter_number.toString() === chapterId 
                           ? (settings.theme === 'dark' ? 'bg-blue-900 text-blue-100' : settings.theme === 'light' ? 'bg-blue-100 text-blue-800' : 'bg-amber-200 text-amber-900')
@@ -247,7 +275,7 @@ const ChapterReader = () => {
                     </Button>
                   </Link>
                   
-                  <Link to={`/novel/${novelId}`} className="block">
+                  <Link to={`/novel/${novelSlug}`} className="block">
                     <Button 
                       variant="default" 
                       className="w-full"
@@ -283,7 +311,7 @@ const ChapterReader = () => {
                 chapterId={chapter.id}
                 chapterTitle={chapter.title}
                 coinPrice={chapter.coin_price}
-                novelId={novelId!}
+                novelId={novel?.id || ''}
                 onUnlock={handleChapterUnlock}
               />
             ) : shouldShowLoginPrompt ? (
@@ -306,7 +334,7 @@ const ChapterReader = () => {
                 {/* Bottom Navigation */}
                 <div className="mt-12 flex justify-between items-center">
                   {prevChapter ? (
-                    <Link to={`/novel/${novelId}/chapter/${prevChapter.chapter_number}`}>
+                    <Link to={`/novel/${novelSlug}/chapter/${prevChapter.chapter_number}`}>
                       <Button className={`flex items-center ${settings.theme === 'dark' ? 'bg-blue-800 hover:bg-blue-700' : settings.theme === 'light' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-amber-600 hover:bg-amber-700 text-white'}`}>
                         <ArrowLeft className="mr-2 h-4 w-4" />
                         Previous Chapter
@@ -317,7 +345,7 @@ const ChapterReader = () => {
                   )}
                   
                   {nextChapter && (
-                    <Link to={`/novel/${novelId}/chapter/${nextChapter.chapter_number}`}>
+                    <Link to={`/novel/${novelSlug}/chapter/${nextChapter.chapter_number}`}>
                       <Button className={`flex items-center ${settings.theme === 'dark' ? 'bg-blue-800 hover:bg-blue-700' : settings.theme === 'light' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-amber-600 hover:bg-amber-700 text-white'}`}>
                         Next Chapter
                         <ArrowRight className="ml-2 h-4 w-4" />
@@ -332,7 +360,7 @@ const ChapterReader = () => {
           <Card className="p-8 text-center">
             <h2 className="text-xl font-bold mb-4">Chapter Not Found</h2>
             <p className="mb-6">The chapter you're looking for doesn't exist.</p>
-            <Link to={`/novel/${novelId}`}>
+            <Link to={`/novel/${novelSlug}`}>
               <Button>Back to Novel</Button>
             </Link>
           </Card>

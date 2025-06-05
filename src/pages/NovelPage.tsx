@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, Link, Navigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +12,7 @@ import Navbar from "@/components/Navbar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { isUUID, slugify } from "@/lib/slugify";
 
 interface Novel {
   id: string;
@@ -74,9 +74,8 @@ const NovelPage = () => {
     const fetchNovelData = async () => {
       setLoading(true);
       try {
-        console.log("Fetching novel with ID:", id);
+        console.log("Fetching novel with ID/slug:", id);
         
-        // First, let's try to find the novel by title if the ID is not a UUID
         let novelQuery = supabase.from('novels').select(`
           *,
           tags:novel_tags(
@@ -84,16 +83,78 @@ const NovelPage = () => {
           )
         `);
 
-        // Check if ID looks like a UUID (has hyphens and is 36 characters)
-        const isUUID = id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-        
-        if (isUUID) {
+        // Check if ID is a UUID or a slug
+        if (isUUID(id || '')) {
           novelQuery = novelQuery.eq('id', id);
         } else {
-          // If not UUID, try to find by slug-like title conversion
-          const titleFromSlug = id?.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || '';
-          console.log("Searching by title:", titleFromSlug);
-          novelQuery = novelQuery.ilike('title', `%${titleFromSlug}%`);
+          // If it's a slug, we need to find the novel by title
+          // For now, we'll search by title similarity since we don't have a slug column
+          const titleFromSlug = id?.replace(/-/g, ' ').toLowerCase() || '';
+          console.log("Searching by slug-derived title:", titleFromSlug);
+          
+          // Get all novels and find the best match
+          const { data: allNovels, error: allNovelsError } = await supabase
+            .from('novels')
+            .select(`
+              *,
+              tags:novel_tags(
+                tags:tag_id(name)
+              )
+            `);
+
+          if (allNovelsError) throw allNovelsError;
+
+          // Find novel where slug matches
+          const matchingNovel = allNovels?.find(novel => 
+            slugify(novel.title) === id
+          );
+
+          if (matchingNovel) {
+            setNovel(matchingNovel);
+          } else {
+            console.log("Novel not found by slug, available novels:");
+            console.log(allNovels?.map(n => ({ title: n.title, slug: slugify(n.title) })));
+            toast.error("Novel not found");
+            navigate("/");
+            return;
+          }
+
+          // Continue with the rest of the data fetching for the found novel
+          if (matchingNovel) {
+            // Fetch chapters
+            const { data: chaptersData, error: chaptersError } = await supabase
+              .from('chapters')
+              .select('*')
+              .eq('novel_id', matchingNovel.id)
+              .order('chapter_number', { ascending: true });
+
+            if (chaptersError) throw chaptersError;
+            setChapters(chaptersData || []);
+
+            // Fetch reviews with user information
+            const { data: reviewsData, error: reviewsError } = await supabase
+              .from('reviews')
+              .select(`
+                *,
+                profiles:user_id(username)
+              `)
+              .eq('novel_id', matchingNovel.id)
+              .order('created_at', { ascending: false });
+
+            if (reviewsError) throw reviewsError;
+            setReviews(reviewsData || []);
+
+            // Check if user has already reviewed this novel
+            if (user && reviewsData) {
+              const userReview = reviewsData.find(review => review.user_id === user.id);
+              if (userReview) {
+                setExistingUserReview(userReview);
+                setUserRating(userReview.rating);
+                setReviewText(userReview.comment || '');
+              }
+            }
+          }
+          return;
         }
 
         const { data: novelData, error: novelError } = await novelQuery.maybeSingle();
@@ -105,7 +166,6 @@ const NovelPage = () => {
         
         if (!novelData) {
           console.log("Novel not found, available novels:");
-          // Let's check what novels are available
           const { data: allNovels } = await supabase.from('novels').select('id, title');
           console.log(allNovels);
           toast.error("Novel not found");
@@ -199,7 +259,7 @@ const NovelPage = () => {
           .from('reviews')
           .insert({
             user_id: user.id,
-            novel_id: id,
+            novel_id: novel?.id,
             rating: userRating,
             comment: reviewText.trim()
           });
@@ -215,7 +275,7 @@ const NovelPage = () => {
           *,
           profiles:user_id(username)
         `)
-        .eq('novel_id', id)
+        .eq('novel_id', novel?.id)
         .order('created_at', { ascending: false });
 
       if (reviewsError) throw reviewsError;
@@ -253,6 +313,9 @@ const NovelPage = () => {
     const date = new Date(dateString);
     return date.toLocaleDateString();
   };
+
+  // Generate slug for this novel for consistent URLs
+  const novelSlug = slugify(novel.title);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
@@ -322,7 +385,7 @@ const NovelPage = () => {
                   Last updated: {formatDate(novel.updated_at)}
                 </div>
 
-                <Link to={`/novel/${novel.id}/chapter/1`}>
+                <Link to={`/novel/${novelSlug}/chapter/1`}>
                   <Button className="w-full bg-blue-600 hover:bg-blue-700 text-lg py-6">
                     <BookOpen className="mr-2 h-5 w-5" />
                     Start Reading
@@ -375,7 +438,7 @@ const NovelPage = () => {
                           }).map((chapter) => (
                             <Link
                               key={chapter.id}
-                              to={`/novel/${novel.id}/chapter/${chapter.chapter_number}`}
+                              to={`/novel/${novelSlug}/chapter/${chapter.chapter_number}`}
                               className="block"
                             >
                               <div className="p-4 rounded-lg border border-gray-700 hover:bg-gray-700 transition-colors">
@@ -440,72 +503,7 @@ const NovelPage = () => {
                           className="mb-3 bg-gray-800 border-gray-600 text-gray-200"
                         />
                         <Button 
-                          onClick={async () => {
-                            if (!user) {
-                              toast.error("You must be logged in to submit a review");
-                              navigate("/auth");
-                              return;
-                            }
-
-                            if (!reviewText.trim() || userRating === 0) {
-                              toast.error("Please enter a comment and rating");
-                              return;
-                            }
-
-                            setSubmittingReview(true);
-                            try {
-                              if (existingUserReview) {
-                                // Update existing review
-                                const { error } = await supabase
-                                  .from('reviews')
-                                  .update({
-                                    rating: userRating,
-                                    comment: reviewText.trim(),
-                                    updated_at: new Date().toISOString()
-                                  })
-                                  .eq('id', existingUserReview.id);
-
-                                if (error) throw error;
-                                toast.success("Your review has been updated");
-                              } else {
-                                // Create new review
-                                const { error } = await supabase
-                                  .from('reviews')
-                                  .insert({
-                                    user_id: user.id,
-                                    novel_id: novel.id,
-                                    rating: userRating,
-                                    comment: reviewText.trim()
-                                  });
-
-                                if (error) throw error;
-                                toast.success("Your review has been submitted");
-                              }
-
-                              // Refetch reviews
-                              const { data: updatedReviews, error: reviewsError } = await supabase
-                                .from('reviews')
-                                .select(`
-                                  *,
-                                  profiles:user_id(username)
-                                `)
-                                .eq('novel_id', novel.id)
-                                .order('created_at', { ascending: false });
-
-                              if (reviewsError) throw reviewsError;
-                              setReviews(updatedReviews || []);
-
-                              // Update user's review state
-                              const userReview = updatedReviews?.find(review => review.user_id === user.id) || null;
-                              setExistingUserReview(userReview);
-
-                            } catch (error) {
-                              console.error("Error submitting review:", error);
-                              toast.error("Failed to submit review");
-                            } finally {
-                              setSubmittingReview(false);
-                            }
-                          }}
+                          onClick={handleReviewSubmit}
                           className="bg-blue-600 hover:bg-blue-700"
                           disabled={!reviewText.trim() || userRating === 0 || submittingReview}
                         >
