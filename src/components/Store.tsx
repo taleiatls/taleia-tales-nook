@@ -2,10 +2,11 @@
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Coins, Package, Star, Zap } from 'lucide-react';
+import { Coins, Package, Star, Zap, ArrowLeft } from 'lucide-react';
 import { useCoins } from '@/hooks/useCoins';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/components/ui/sonner';
+import { useNavigate } from 'react-router-dom';
 
 interface CoinPackage {
   id: string;
@@ -26,6 +27,7 @@ const Store = () => {
   const { user } = useAuth();
   const { coinBalance, addCoins } = useCoins();
   const [purchasing, setPurchasing] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const handlePurchase = async (pkg: CoinPackage) => {
     if (!user) {
@@ -43,15 +45,35 @@ const Store = () => {
     
     if (success) {
       toast.success(`Successfully purchased ${totalCoins} coins!`);
+      // Navigate back to the previous page after successful purchase
+      setTimeout(() => {
+        navigate(-1);
+      }, 1500);
     }
     
     setPurchasing(null);
+  };
+
+  const handleBackToHome = () => {
+    navigate('/');
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-4">
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-8">
+          {/* Back to Home Button */}
+          <div className="flex justify-start mb-6">
+            <Button
+              variant="outline"
+              onClick={handleBackToHome}
+              className="border-gray-600 text-gray-300 hover:bg-gray-700"
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Home
+            </Button>
+          </div>
+
           <h1 className="text-4xl font-bold text-white mb-4 flex items-center justify-center gap-3">
             <Package className="h-10 w-10 text-yellow-400" />
             Coin Store
