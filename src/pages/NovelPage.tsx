@@ -59,6 +59,8 @@ interface Review {
 }
 
 const NovelPage = () => {
+  console.log("NovelPage component rendering");
+  
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
@@ -319,6 +321,8 @@ const NovelPage = () => {
 
   // Generate slug for this novel for consistent URLs
   const novelSlug = slugify(novel.title);
+
+  console.log("About to render Tabs component with novel:", novel.title);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
