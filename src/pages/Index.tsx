@@ -1,9 +1,11 @@
+
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { Search, BookOpen, Star, Clock, TrendingUp } from "lucide-react";
 import Navbar from "@/components/Navbar";
 
@@ -37,10 +39,23 @@ const featuredNovels = [
   }
 ];
 
-const recentlyUpdated = [
+// Extended recently updated list with 15 items
+const allRecentlyUpdated = [
   { id: 1, title: "The Mystic Chronicles", chapter: "Chapter 145: The Final Stand", time: "2 hours ago" },
   { id: 2, title: "Digital Hearts", chapter: "Chapter 78: Unexpected Reunion", time: "5 hours ago" },
   { id: 3, title: "Academy of Shadows", chapter: "Chapter 203: Hidden Truths", time: "1 day ago" },
+  { id: 4, title: "Starship Commander", chapter: "Chapter 92: Last Hope", time: "2 days ago" },
+  { id: 5, title: "Magic Academy Elite", chapter: "Chapter 156: Ancient Secrets", time: "3 days ago" },
+  { id: 6, title: "Virtual Reality Love", chapter: "Chapter 67: Digital Dreams", time: "4 days ago" },
+  { id: 7, title: "Shadow Hunter", chapter: "Chapter 234: Night Raid", time: "5 days ago" },
+  { id: 8, title: "Elemental Princess", chapter: "Chapter 89: Fire and Ice", time: "6 days ago" },
+  { id: 9, title: "Cyber Detective", chapter: "Chapter 123: Data Trail", time: "1 week ago" },
+  { id: 10, title: "Mystic Realm", chapter: "Chapter 178: Portal Gateway", time: "1 week ago" },
+  { id: 11, title: "Dragon Slayer Academy", chapter: "Chapter 145: Final Exam", time: "1 week ago" },
+  { id: 12, title: "Space Mercenary", chapter: "Chapter 201: Galactic War", time: "1 week ago" },
+  { id: 13, title: "Time Traveler's Diary", chapter: "Chapter 56: Past Mistakes", time: "2 weeks ago" },
+  { id: 14, title: "Immortal Cultivator", chapter: "Chapter 267: Heavenly Breakthrough", time: "2 weeks ago" },
+  { id: 15, title: "Dark Magic Academy", chapter: "Chapter 134: Forbidden Spells", time: "2 weeks ago" },
 ];
 
 const popularThisWeek = [
@@ -50,6 +65,21 @@ const popularThisWeek = [
 ];
 
 const Index = () => {
+  const [currentPage, setCurrentPage] = useState(1);
+  const [showAllUpdated, setShowAllUpdated] = useState(false);
+  const itemsPerPage = 5;
+
+  const displayedUpdated = showAllUpdated 
+    ? allRecentlyUpdated.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+    : allRecentlyUpdated.slice(0, 3);
+
+  const totalPages = Math.ceil(allRecentlyUpdated.length / itemsPerPage);
+
+  const handleShowMore = () => {
+    setShowAllUpdated(true);
+    setCurrentPage(1);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-gray-950 to-black">
       <Navbar />
@@ -144,7 +174,7 @@ const Index = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {recentlyUpdated.map((item) => (
+                {displayedUpdated.map((item) => (
                   <div key={item.id} className="border-b border-gray-800 pb-3 last:border-b-0">
                     <Link to={`/novel/${item.title.toLowerCase().replace(/\s+/g, '-')}`} className="hover:text-blue-400">
                       <h4 className="font-medium mb-1 text-white">{item.title}</h4>
@@ -153,6 +183,57 @@ const Index = () => {
                     </Link>
                   </div>
                 ))}
+                
+                {!showAllUpdated && (
+                  <Button 
+                    variant="outline" 
+                    className="w-full mt-4 border-gray-600 text-gray-300 hover:bg-gray-800"
+                    onClick={handleShowMore}
+                  >
+                    Show More
+                  </Button>
+                )}
+                
+                {showAllUpdated && totalPages > 1 && (
+                  <Pagination className="mt-6">
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious 
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            if (currentPage > 1) setCurrentPage(currentPage - 1);
+                          }}
+                          className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
+                        />
+                      </PaginationItem>
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                        <PaginationItem key={page}>
+                          <PaginationLink
+                            href="#"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setCurrentPage(page);
+                            }}
+                            isActive={currentPage === page}
+                          >
+                            {page}
+                          </PaginationLink>
+                        </PaginationItem>
+                      ))}
+                      <PaginationItem>
+                        <PaginationNext 
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+                          }}
+                          className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                )}
               </CardContent>
             </Card>
 

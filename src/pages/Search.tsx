@@ -133,13 +133,13 @@ const Search = () => {
   }, [searchParams]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50">
+    <div className="min-h-screen bg-gradient-to-br from-black via-gray-950 to-black">
       <Navbar />
       
       <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Search Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-800 mb-6 text-center font-serif">
+          <h1 className="text-4xl font-bold text-white mb-6 text-center font-serif">
             Discover Amazing Stories
           </h1>
           
@@ -151,11 +151,11 @@ const Search = () => {
                 placeholder="Search novels, authors, or tags..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-6 text-lg border-amber-200 focus:border-amber-400"
+                className="pl-10 pr-4 py-6 text-lg bg-gray-900 border-gray-700 text-white focus:border-blue-400"
               />
               <Button 
                 type="submit" 
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-amber-600 hover:bg-amber-700"
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-blue-600 hover:bg-blue-700"
               >
                 Search
               </Button>
@@ -166,17 +166,17 @@ const Search = () => {
             <Button
               variant="outline"
               onClick={() => setShowFilters(!showFilters)}
-              className="border-amber-300 text-amber-700 hover:bg-amber-50"
+              className="border-gray-600 text-gray-300 hover:bg-gray-800"
             >
               <Filter className="mr-2 h-4 w-4" />
               Filters
             </Button>
             
             <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-48 border-amber-200">
+              <SelectTrigger className="w-48 bg-gray-900 border-gray-700 text-white">
                 <SelectValue placeholder="Sort by..." />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-gray-900 border-gray-700">
                 <SelectItem value="popular">Most Popular</SelectItem>
                 <SelectItem value="rating">Highest Rated</SelectItem>
                 <SelectItem value="recent">Recently Updated</SelectItem>
@@ -189,9 +189,9 @@ const Search = () => {
 
         {/* Filters Panel */}
         {showFilters && (
-          <Card className="mb-8 border-amber-200">
+          <Card className="mb-8 bg-gray-900 border-gray-700">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-white">
                 <Filter className="h-5 w-5" />
                 Filters
               </CardTitle>
@@ -200,7 +200,7 @@ const Search = () => {
               <div className="grid md:grid-cols-2 gap-6">
                 {/* Genres */}
                 <div>
-                  <h3 className="font-medium mb-3">Genres</h3>
+                  <h3 className="font-medium mb-3 text-gray-200">Genres</h3>
                   <div className="grid grid-cols-2 gap-2">
                     {genres.map((genre) => (
                       <div key={genre} className="flex items-center space-x-2">
@@ -209,7 +209,7 @@ const Search = () => {
                           checked={selectedGenres.includes(genre)}
                           onCheckedChange={() => handleGenreToggle(genre)}
                         />
-                        <label htmlFor={genre} className="text-sm">
+                        <label htmlFor={genre} className="text-sm text-gray-300">
                           {genre}
                         </label>
                       </div>
@@ -219,12 +219,12 @@ const Search = () => {
 
                 {/* Status */}
                 <div>
-                  <h3 className="font-medium mb-3">Status</h3>
+                  <h3 className="font-medium mb-3 text-gray-200">Status</h3>
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger>
+                    <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-gray-900 border-gray-700">
                       <SelectItem value="all">All Status</SelectItem>
                       <SelectItem value="ongoing">Ongoing</SelectItem>
                       <SelectItem value="complete">Complete</SelectItem>
@@ -238,7 +238,7 @@ const Search = () => {
 
         {/* Results */}
         <div className="mb-6">
-          <p className="text-gray-600">
+          <p className="text-gray-400">
             {sortedNovels.length} novel{sortedNovels.length !== 1 ? 's' : ''} found
             {searchTerm && ` for "${searchTerm}"`}
           </p>
@@ -246,25 +246,25 @@ const Search = () => {
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {sortedNovels.map((novel) => (
-            <Card key={novel.id} className="h-full hover:shadow-lg transition-shadow border-amber-200">
+            <Card key={novel.id} className="h-full hover:shadow-lg transition-shadow bg-gray-900 border-gray-700">
               <CardHeader className="pb-2">
-                <div className="aspect-[3/4] bg-gray-200 rounded-lg mb-4 overflow-hidden">
+                <div className="aspect-[3/4] bg-gray-800 rounded-lg mb-4 overflow-hidden">
                   <img 
                     src={novel.cover} 
                     alt={novel.title}
                     className="w-full h-full object-cover"
                   />
                 </div>
-                <CardTitle className="text-lg font-serif line-clamp-2">{novel.title}</CardTitle>
-                <CardDescription>by {novel.author}</CardDescription>
+                <CardTitle className="text-lg font-serif line-clamp-2 text-white">{novel.title}</CardTitle>
+                <CardDescription className="text-gray-400">by {novel.author}</CardDescription>
               </CardHeader>
               <CardContent className="flex-1 flex flex-col">
-                <p className="text-sm text-gray-600 mb-4 line-clamp-3">{novel.synopsis}</p>
+                <p className="text-sm text-gray-300 mb-4 line-clamp-3">{novel.synopsis}</p>
                 
                 <div className="flex items-center gap-2 mb-3">
                   <div className="flex items-center">
                     <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
-                    <span className="text-sm font-medium">{novel.rating}</span>
+                    <span className="text-sm font-medium text-gray-300">{novel.rating}</span>
                   </div>
                   <Badge variant={novel.status === "Ongoing" ? "default" : "secondary"}>
                     {novel.status}
@@ -288,15 +288,15 @@ const Search = () => {
 
                 <div className="flex flex-wrap gap-1 mb-4">
                   {novel.tags.slice(0, 3).map((tag) => (
-                    <Badge key={tag} variant="outline" className="text-xs">
+                    <Badge key={tag} variant="outline" className="text-xs border-gray-600 text-gray-300">
                       {tag}
                     </Badge>
                   ))}
                 </div>
 
                 <div className="mt-auto">
-                  <Link to={`/novel/${novel.id}`}>
-                    <Button className="w-full bg-amber-600 hover:bg-amber-700">
+                  <Link to={`/novel/${novel.title.toLowerCase().replace(/\s+/g, '-')}`}>
+                    <Button className="w-full bg-blue-600 hover:bg-blue-700">
                       Read Now
                     </Button>
                   </Link>
@@ -309,7 +309,7 @@ const Search = () => {
         {sortedNovels.length === 0 && (
           <div className="text-center py-12">
             <BookOpen className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-medium text-gray-600 mb-2">No novels found</h3>
+            <h3 className="text-xl font-medium text-gray-300 mb-2">No novels found</h3>
             <p className="text-gray-500">Try adjusting your search or filters</p>
           </div>
         )}
