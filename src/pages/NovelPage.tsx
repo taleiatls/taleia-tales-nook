@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,12 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Textarea } from "@/components/ui/textarea";
 import { Star, BookOpen, Calendar, User, Tag, ArrowUpDown } from "lucide-react";
 import Navbar from "@/components/Navbar";
 
 const NovelPage = () => {
   const { id } = useParams();
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [reviewText, setReviewText] = useState("");
+  const [userRating, setUserRating] = useState(0);
 
   // Mock data - in a real app, this would come from an API
   const novel = {
@@ -58,25 +60,34 @@ const NovelPage = () => {
     return sortOrder === "asc" ? a.id - b.id : b.id - a.id;
   });
 
+  const handleReviewSubmit = () => {
+    if (reviewText.trim() && userRating > 0) {
+      // TODO: Implement review submission when user system is added
+      console.log("Review submitted:", { rating: userRating, comment: reviewText });
+      setReviewText("");
+      setUserRating(0);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
       <Navbar />
       
       <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Novel Info */}
           <div className="lg:col-span-1">
-            <Card className="border-amber-200">
+            <Card className="bg-gray-800 border-gray-700">
               <CardHeader className="text-center">
-                <div className="aspect-[3/4] bg-gray-200 rounded-lg mb-4 overflow-hidden mx-auto max-w-64">
+                <div className="aspect-[3/4] bg-gray-700 rounded-lg mb-4 overflow-hidden mx-auto max-w-64">
                   <img 
                     src={novel.cover} 
                     alt={novel.title}
                     className="w-full h-full object-cover"
                   />
                 </div>
-                <CardTitle className="text-2xl font-serif">{novel.title}</CardTitle>
-                <CardDescription className="flex items-center justify-center gap-1">
+                <CardTitle className="text-2xl font-serif text-gray-100">{novel.title}</CardTitle>
+                <CardDescription className="flex items-center justify-center gap-1 text-gray-400">
                   <User className="h-4 w-4" />
                   by {novel.author}
                 </CardDescription>
@@ -85,7 +96,7 @@ const NovelPage = () => {
                 <div className="flex items-center justify-center gap-2">
                   <div className="flex items-center">
                     <Star className="h-5 w-5 fill-yellow-400 text-yellow-400 mr-1" />
-                    <span className="font-medium">{novel.rating}</span>
+                    <span className="font-medium text-gray-300">{novel.rating}</span>
                     <span className="text-gray-500 ml-1">({novel.totalRatings})</span>
                   </div>
                 </div>
@@ -98,16 +109,12 @@ const NovelPage = () => {
                     </Badge>
                   </div>
                   <div>
-                    <span className="text-gray-500">Language:</span>
-                    <span className="ml-2">{novel.language}</span>
-                  </div>
-                  <div>
                     <span className="text-gray-500">Chapters:</span>
-                    <span className="ml-2">{novel.totalChapters}</span>
+                    <span className="ml-2 text-gray-300">{novel.totalChapters}</span>
                   </div>
                   <div>
                     <span className="text-gray-500">Views:</span>
-                    <span className="ml-2">{novel.views}</span>
+                    <span className="ml-2 text-gray-300">{novel.views}</span>
                   </div>
                 </div>
 
@@ -118,7 +125,7 @@ const NovelPage = () => {
                   </div>
                   <div className="flex flex-wrap gap-1">
                     {novel.tags.map((tag) => (
-                      <Badge key={tag} variant="outline" className="text-xs">
+                      <Badge key={tag} variant="outline" className="text-xs border-gray-600 text-gray-300">
                         {tag}
                       </Badge>
                     ))}
@@ -131,7 +138,7 @@ const NovelPage = () => {
                 </div>
 
                 <Link to={`/novel/${id}/chapter/1`}>
-                  <Button className="w-full bg-amber-600 hover:bg-amber-700 text-lg py-6">
+                  <Button className="w-full bg-blue-600 hover:bg-blue-700 text-lg py-6">
                     <BookOpen className="mr-2 h-5 w-5" />
                     Start Reading
                   </Button>
@@ -142,33 +149,33 @@ const NovelPage = () => {
 
           {/* Content Area */}
           <div className="lg:col-span-2">
-            <Tabs defaultValue="synopsis" className="w-full">
-              <TabsList className="grid w-full grid-cols-3 bg-amber-100">
-                <TabsTrigger value="synopsis">Synopsis</TabsTrigger>
-                <TabsTrigger value="chapters">Chapters</TabsTrigger>
-                <TabsTrigger value="reviews">Reviews</TabsTrigger>
+            <Tabs defaultValue="description" className="w-full">
+              <TabsList className="grid w-full grid-cols-3 bg-gray-800 border-gray-700">
+                <TabsTrigger value="description" className="data-[state=active]:bg-blue-600">Description</TabsTrigger>
+                <TabsTrigger value="chapters" className="data-[state=active]:bg-blue-600">Chapters</TabsTrigger>
+                <TabsTrigger value="reviews" className="data-[state=active]:bg-blue-600">Reviews</TabsTrigger>
               </TabsList>
               
-              <TabsContent value="synopsis" className="mt-6">
-                <Card className="border-amber-200">
+              <TabsContent value="description" className="mt-6">
+                <Card className="bg-gray-800 border-gray-700">
                   <CardHeader>
-                    <CardTitle>Synopsis</CardTitle>
+                    <CardTitle className="text-gray-100">Description</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-gray-700 leading-relaxed">{novel.synopsis}</p>
+                    <p className="text-gray-300 leading-relaxed">{novel.synopsis}</p>
                   </CardContent>
                 </Card>
               </TabsContent>
 
               <TabsContent value="chapters" className="mt-6">
-                <Card className="border-amber-200">
+                <Card className="bg-gray-800 border-gray-700">
                   <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle>Chapter List</CardTitle>
+                    <CardTitle className="text-gray-100">Chapter List</CardTitle>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
-                      className="border-amber-300"
+                      className="border-gray-600 text-gray-300 hover:bg-gray-700"
                     >
                       <ArrowUpDown className="h-4 w-4 mr-2" />
                       {sortOrder === "asc" ? "Oldest First" : "Newest First"}
@@ -183,10 +190,10 @@ const NovelPage = () => {
                             to={`/novel/${id}/chapter/${chapter.id}`}
                             className="block"
                           >
-                            <div className="p-4 rounded-lg border border-amber-200 hover:bg-amber-50 transition-colors">
+                            <div className="p-4 rounded-lg border border-gray-700 hover:bg-gray-700 transition-colors">
                               <div className="flex justify-between items-start">
                                 <div>
-                                  <h4 className="font-medium text-gray-800">{chapter.title}</h4>
+                                  <h4 className="font-medium text-gray-200">{chapter.title}</h4>
                                   <p className="text-sm text-gray-500">{chapter.releaseDate}</p>
                                 </div>
                                 <span className="text-xs text-gray-400">{chapter.views.toLocaleString()} views</span>
@@ -201,16 +208,55 @@ const NovelPage = () => {
               </TabsContent>
 
               <TabsContent value="reviews" className="mt-6">
-                <Card className="border-amber-200">
+                <Card className="bg-gray-800 border-gray-700">
                   <CardHeader>
-                    <CardTitle>Reader Reviews</CardTitle>
+                    <CardTitle className="text-gray-100">Reader Reviews</CardTitle>
                   </CardHeader>
                   <CardContent>
+                    {/* Add Review Form */}
+                    <div className="mb-6 p-4 bg-gray-700 rounded-lg">
+                      <h4 className="font-medium mb-3 text-gray-200">Add Your Review</h4>
+                      <div className="mb-3">
+                        <label className="text-sm text-gray-300 mb-2 block">Rating:</label>
+                        <div className="flex gap-1">
+                          {Array.from({ length: 5 }).map((_, i) => (
+                            <button
+                              key={i}
+                              onClick={() => setUserRating(i + 1)}
+                              className="transition-colors"
+                            >
+                              <Star
+                                className={`h-6 w-6 ${
+                                  i < userRating
+                                    ? "fill-yellow-400 text-yellow-400"
+                                    : "text-gray-500 hover:text-yellow-300"
+                                }`}
+                              />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <Textarea
+                        placeholder="Write your review..."
+                        value={reviewText}
+                        onChange={(e) => setReviewText(e.target.value)}
+                        className="mb-3 bg-gray-800 border-gray-600 text-gray-200"
+                      />
+                      <Button 
+                        onClick={handleReviewSubmit}
+                        className="bg-blue-600 hover:bg-blue-700"
+                        disabled={!reviewText.trim() || userRating === 0}
+                      >
+                        Submit Review
+                      </Button>
+                    </div>
+
+                    {/* Existing Reviews */}
                     <div className="space-y-6">
                       {reviews.map((review) => (
-                        <div key={review.id} className="border-b border-gray-200 pb-4 last:border-b-0">
+                        <div key={review.id} className="border-b border-gray-700 pb-4 last:border-b-0">
                           <div className="flex items-center justify-between mb-2">
-                            <span className="font-medium">{review.user}</span>
+                            <span className="font-medium text-gray-200">{review.user}</span>
                             <div className="flex items-center">
                               {Array.from({ length: 5 }).map((_, i) => (
                                 <Star
@@ -218,13 +264,13 @@ const NovelPage = () => {
                                   className={`h-4 w-4 ${
                                     i < review.rating
                                       ? "fill-yellow-400 text-yellow-400"
-                                      : "text-gray-300"
+                                      : "text-gray-600"
                                   }`}
                                 />
                               ))}
                             </div>
                           </div>
-                          <p className="text-gray-700 mb-2">{review.comment}</p>
+                          <p className="text-gray-300 mb-2">{review.comment}</p>
                           <span className="text-xs text-gray-500">{review.date}</span>
                         </div>
                       ))}

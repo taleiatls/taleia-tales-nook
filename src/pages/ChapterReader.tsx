@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -24,7 +23,7 @@ const ChapterReader = () => {
   const [fontSize, setFontSize] = useState(18);
   const [fontFamily, setFontFamily] = useState("serif");
   const [lineHeight, setLineHeight] = useState(1.6);
-  const [theme, setTheme] = useState("light");
+  const [theme, setTheme] = useState("dark");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isChapterListOpen, setIsChapterListOpen] = useState(false);
 
@@ -105,12 +104,12 @@ const ChapterReader = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Link to="/">
-                <Button variant="ghost" size="sm">
+                <Button variant="ghost" size="sm" className={theme === "dark" ? "text-gray-300 hover:text-gray-100" : ""}>
                   <Home className="h-4 w-4" />
                 </Button>
               </Link>
               <Link to={`/novel/${id}`}>
-                <Button variant="ghost" size="sm" className="text-left">
+                <Button variant="ghost" size="sm" className={`text-left ${theme === "dark" ? "text-gray-300 hover:text-gray-100" : ""}`}>
                   <div>
                     <div className="font-medium text-sm">{novel.title}</div>
                     <div className="text-xs opacity-60">{currentChapter.title}</div>
@@ -122,13 +121,13 @@ const ChapterReader = () => {
             <div className="flex items-center gap-2">
               <Sheet open={isChapterListOpen} onOpenChange={setIsChapterListOpen}>
                 <SheetTrigger asChild>
-                  <Button variant="ghost" size="sm">
+                  <Button variant="ghost" size="sm" className={theme === "dark" ? "text-gray-300 hover:text-gray-100" : ""}>
                     <List className="h-4 w-4" />
                   </Button>
                 </SheetTrigger>
-                <SheetContent>
+                <SheetContent className={theme === "dark" ? "bg-gray-900 border-gray-700" : ""}>
                   <SheetHeader>
-                    <SheetTitle>Chapter List</SheetTitle>
+                    <SheetTitle className={theme === "dark" ? "text-gray-100" : ""}>Chapter List</SheetTitle>
                   </SheetHeader>
                   <ScrollArea className="mt-6 h-[calc(100vh-120px)]">
                     <div className="space-y-2">
@@ -140,10 +139,10 @@ const ChapterReader = () => {
                         >
                           <div className={`p-3 rounded-lg border transition-colors ${
                             chapter.id === currentChapter.id 
-                              ? "bg-amber-100 border-amber-300" 
-                              : "border-gray-200 hover:bg-gray-50"
+                              ? theme === "dark" ? "bg-blue-900 border-blue-700" : "bg-amber-100 border-amber-300"
+                              : theme === "dark" ? "border-gray-700 hover:bg-gray-800" : "border-gray-200 hover:bg-gray-50"
                           }`}>
-                            <span className="font-medium">{chapter.title}</span>
+                            <span className={`font-medium ${theme === "dark" ? "text-gray-200" : ""}`}>{chapter.title}</span>
                           </div>
                         </Link>
                       ))}
@@ -154,13 +153,13 @@ const ChapterReader = () => {
 
               <Sheet open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
                 <SheetTrigger asChild>
-                  <Button variant="ghost" size="sm">
+                  <Button variant="ghost" size="sm" className={theme === "dark" ? "text-gray-300 hover:text-gray-100" : ""}>
                     <Settings className="h-4 w-4" />
                   </Button>
                 </SheetTrigger>
-                <SheetContent>
+                <SheetContent className={theme === "dark" ? "bg-gray-900 border-gray-700" : ""}>
                   <SheetHeader>
-                    <SheetTitle>Reading Settings</SheetTitle>
+                    <SheetTitle className={theme === "dark" ? "text-gray-100" : ""}>Reading Settings</SheetTitle>
                   </SheetHeader>
                   <div className="mt-6 space-y-6">
                     {/* Font Size */}
@@ -270,7 +269,7 @@ const ChapterReader = () => {
         </div>
 
         <div 
-          className={`prose max-w-none ${fontClasses[fontFamily as keyof typeof fontClasses]}`}
+          className={`prose max-w-none ${fontClasses[fontFamily as keyof typeof fontClasses]} ${theme === "dark" ? "prose-invert" : ""}`}
           style={{ 
             fontSize: `${fontSize}px`, 
             lineHeight: lineHeight,
@@ -285,10 +284,10 @@ const ChapterReader = () => {
         </div>
 
         {/* Navigation */}
-        <div className="flex justify-between items-center mt-12 pt-8 border-t">
+        <div className="flex justify-between items-center mt-12 pt-8 border-t border-gray-700">
           {prevChapter ? (
             <Link to={`/novel/${id}/chapter/${prevChapter}`}>
-              <Button variant="outline" className="flex items-center gap-2">
+              <Button variant="outline" className={`flex items-center gap-2 ${theme === "dark" ? "border-gray-600 text-gray-300 hover:bg-gray-800" : ""}`}>
                 <ChevronLeft className="h-4 w-4" />
                 Previous Chapter
               </Button>
@@ -299,7 +298,7 @@ const ChapterReader = () => {
 
           {nextChapter ? (
             <Link to={`/novel/${id}/chapter/${nextChapter}`}>
-              <Button className="flex items-center gap-2 bg-amber-600 hover:bg-amber-700">
+              <Button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700">
                 Next Chapter
                 <ChevronRight className="h-4 w-4" />
               </Button>
