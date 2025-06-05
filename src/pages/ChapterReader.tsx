@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -166,7 +167,7 @@ const ChapterReader = () => {
       setLoading(false);
       setCheckingAccess(false);
     }
-  }, [id, chapterId, navigate, checkChapterPurchased]);
+  }, [id, chapterId, user?.id, navigate]); // Remove checkChapterPurchased from dependencies
 
   const fetchReadingSettings = useCallback(async () => {
     if (user) {
@@ -191,21 +192,24 @@ const ChapterReader = () => {
         console.error("Error fetching reading settings:", error);
       }
     }
-  }, [user]);
+  }, [user?.id]);
 
   useEffect(() => {
     fetchChapterData();
-    fetchReadingSettings();
-  }, [id, chapterId, fetchChapterData, fetchReadingSettings]);
+  }, [id, chapterId]); // Simplified dependencies
 
-  const handleUnlockSuccess = () => {
+  useEffect(() => {
+    fetchReadingSettings();
+  }, [user?.id]); // Simplified dependencies
+
+  const handleUnlockSuccess = useCallback(() => {
     setIsUnlocked(true);
     toast.success("Chapter unlocked! You can now read it.");
-  };
+  }, []);
 
-  const handleSettingsChange = (newSettings: ReadingSettings) => {
+  const handleSettingsChange = useCallback((newSettings: ReadingSettings) => {
     setReadingSettings(newSettings);
-  };
+  }, []);
 
   if (loading || checkingAccess) {
     return (
@@ -302,7 +306,10 @@ const ChapterReader = () => {
             </div>
             
             <div className="flex items-center gap-2">
-              <SettingsModal onSettingsChange={handleSettingsChange} />
+              <SettingsModal 
+                currentSettings={readingSettings}
+                onSettingsChange={handleSettingsChange} 
+              />
               <ChapterListSlider
                 chapters={allChapters}
                 currentChapter={chapter.chapter_number}

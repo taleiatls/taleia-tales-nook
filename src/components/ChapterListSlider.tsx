@@ -31,6 +31,10 @@ const ChapterListSlider = ({ chapters, currentChapter, novelTitle, novelSlug }: 
     return date.toLocaleDateString();
   };
 
+  const handleChapterClick = () => {
+    setIsOpen(false);
+  };
+
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
@@ -52,7 +56,7 @@ const ChapterListSlider = ({ chapters, currentChapter, novelTitle, novelSlug }: 
                 key={chapter.id}
                 to={`/novel/${novelSlug}/chapter/${chapter.chapter_number}`}
                 className="block"
-                onClick={() => setIsOpen(false)}
+                onClick={handleChapterClick}
               >
                 <div className={`p-3 rounded-lg border transition-colors ${
                   chapter.chapter_number === currentChapter
