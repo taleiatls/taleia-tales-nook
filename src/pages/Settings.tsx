@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -51,7 +50,7 @@ const Settings = () => {
               font_size: data.font_size,
               font_family: data.font_family,
               line_height: data.line_height,
-              theme: data.theme
+              theme: data.theme as 'light' | 'dark' | 'comfort'
             });
           }
         } catch (error) {

@@ -76,7 +76,7 @@ const ChapterReader = () => {
           .from('chapters')
           .select('*')
           .eq('novel_id', novelId)
-          .eq('chapter_number', chapterId)
+          .eq('chapter_number', parseInt(chapterId || '1'))
           .maybeSingle();
 
         if (chapterError) throw chapterError;
@@ -103,7 +103,7 @@ const ChapterReader = () => {
               font_size: userSettings.font_size,
               font_family: userSettings.font_family,
               line_height: userSettings.line_height,
-              theme: userSettings.theme
+              theme: userSettings.theme as 'light' | 'dark' | 'comfort'
             });
           }
         }
