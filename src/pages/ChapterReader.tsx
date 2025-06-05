@@ -9,6 +9,7 @@ import LockedChapter from "@/components/LockedChapter";
 import ChapterListSlider from "@/components/ChapterListSlider";
 import SettingsModal from "@/components/SettingsModal";
 import ChapterSidebarAd from "@/components/ads/ChapterSidebarAd";
+import MobileStatusBarAd from "@/components/ads/MobileStatusBarAd";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCoins } from "@/hooks/useCoins";
@@ -399,6 +400,9 @@ const ChapterReader = () => {
           </div>
         </div>
       </div>
+
+      {/* Mobile Status Bar Ad */}
+      <MobileStatusBarAd />
     </div>
   );
 };
