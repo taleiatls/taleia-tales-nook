@@ -61,7 +61,7 @@ export const useCoins = () => {
 
       if (error) throw error;
 
-      const response = data as FunctionResponse;
+      const response = data as unknown as FunctionResponse;
       if (response.success) {
         setCoinBalance(prev => ({ ...prev, balance: response.new_balance || 0 }));
         toast.success(`Added ${amount} coins to your account!`);
@@ -92,7 +92,7 @@ export const useCoins = () => {
 
       if (error) throw error;
 
-      const response = data as FunctionResponse;
+      const response = data as unknown as FunctionResponse;
       if (response.success) {
         setCoinBalance(prev => ({ ...prev, balance: response.new_balance || 0 }));
         toast.success('Chapter unlocked successfully!');
