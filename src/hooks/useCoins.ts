@@ -9,6 +9,12 @@ interface CoinBalance {
   loading: boolean;
 }
 
+interface FunctionResponse {
+  success: boolean;
+  new_balance?: number;
+  error?: string;
+}
+
 export const useCoins = () => {
   const { user } = useAuth();
   const [coinBalance, setCoinBalance] = useState<CoinBalance>({ balance: 0, loading: true });
@@ -55,8 +61,9 @@ export const useCoins = () => {
 
       if (error) throw error;
 
-      if (data.success) {
-        setCoinBalance(prev => ({ ...prev, balance: data.new_balance }));
+      const response = data as FunctionResponse;
+      if (response.success) {
+        setCoinBalance(prev => ({ ...prev, balance: response.new_balance || 0 }));
         toast.success(`Added ${amount} coins to your account!`);
         return true;
       } else {
@@ -85,12 +92,13 @@ export const useCoins = () => {
 
       if (error) throw error;
 
-      if (data.success) {
-        setCoinBalance(prev => ({ ...prev, balance: data.new_balance }));
+      const response = data as FunctionResponse;
+      if (response.success) {
+        setCoinBalance(prev => ({ ...prev, balance: response.new_balance || 0 }));
         toast.success('Chapter unlocked successfully!');
         return true;
       } else {
-        toast.error(data.error || 'Failed to unlock chapter');
+        toast.error(response.error || 'Failed to unlock chapter');
         return false;
       }
     } catch (error) {
