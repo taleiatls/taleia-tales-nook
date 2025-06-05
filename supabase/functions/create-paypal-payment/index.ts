@@ -53,7 +53,7 @@ serve(async (req) => {
     // Get PayPal credentials
     const paypalClientId = Deno.env.get("PAYPAL_CLIENT_ID");
     const paypalClientSecret = Deno.env.get("PAYPAL_CLIENT_SECRET");
-    const paypalBaseUrl = Deno.env.get("PAYPAL_BASE_URL") || "https://api-m.sandbox.paypal.com";
+    const paypalBaseUrl = "https://api-m.sandbox.paypal.com"; // Fixed base URL
 
     if (!paypalClientId || !paypalClientSecret) {
       console.error("PayPal credentials missing:", { 
@@ -90,10 +90,10 @@ serve(async (req) => {
     const tokenData: PayPalAccessTokenResponse = await tokenResponse.json();
     console.log("Successfully got PayPal access token");
 
-    // Get the origin for return/cancel URLs
-    const origin = req.headers.get("origin") || "https://0b22bd10-10fb-4ca4-ae09-c33111b0a296.lovableproject.com";
+    // Get the origin for return/cancel URLs - use the actual Lovable preview URL
+    const origin = "https://0b22bd10-10fb-4ca4-ae09-c33111b0a296.lovableproject.com";
 
-    // Create PayPal payment
+    // Create PayPal payment with improved configuration
     const paymentData = {
       intent: "CAPTURE",
       purchase_units: [
@@ -110,9 +110,12 @@ serve(async (req) => {
         return_url: `${origin}/payment-success`,
         cancel_url: `${origin}/store`,
         brand_name: "TaleiaTLS Novel Reader",
-        landing_page: "NO_PREFERENCE",
+        landing_page: "LOGIN",
         user_action: "PAY_NOW",
         shipping_preference: "NO_SHIPPING",
+        payment_method: {
+          payee_preferred: "IMMEDIATE_PAYMENT_REQUIRED"
+        }
       },
     };
 
@@ -125,6 +128,7 @@ serve(async (req) => {
         "Authorization": `Bearer ${tokenData.access_token}`,
         "Accept": "application/json",
         "PayPal-Request-Id": `${user.id}_${Date.now()}`, // Idempotency key
+        "Prefer": "return=representation"
       },
       body: JSON.stringify(paymentData),
     });
