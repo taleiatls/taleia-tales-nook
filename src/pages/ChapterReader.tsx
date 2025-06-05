@@ -70,6 +70,7 @@ const ChapterReader = () => {
           .from('novels')
           .select('id, title, author, total_chapters')
           .eq('id', id)
+          .eq('is_hidden', false)
           .maybeSingle();
 
         if (error) throw error;
@@ -78,7 +79,8 @@ const ChapterReader = () => {
         // Search by slug
         const { data: allNovels, error } = await supabase
           .from('novels')
-          .select('id, title, author, total_chapters');
+          .select('id, title, author, total_chapters')
+          .eq('is_hidden', false);
 
         if (error) throw error;
 
@@ -93,11 +95,12 @@ const ChapterReader = () => {
 
       setNovel(novelData);
 
-      // Fetch all chapters for the slider
+      // Fetch all chapters for the slider (only visible ones)
       const { data: allChaptersData, error: allChaptersError } = await supabase
         .from('chapters')
         .select('id, chapter_number, title, created_at, is_locked, coin_price')
         .eq('novel_id', novelData.id)
+        .eq('is_hidden', false)
         .order('chapter_number', { ascending: true });
 
       if (allChaptersError) throw allChaptersError;
@@ -109,6 +112,7 @@ const ChapterReader = () => {
         .select('*')
         .eq('novel_id', novelData.id)
         .eq('chapter_number', parseInt(chapterId || '1'))
+        .eq('is_hidden', false)
         .maybeSingle();
 
       if (chapterError) throw chapterError;

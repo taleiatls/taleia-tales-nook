@@ -9,6 +9,30 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      admin_users: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["admin_role"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["admin_role"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["admin_role"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       chapter_purchases: {
         Row: {
           chapter_id: string
@@ -48,6 +72,7 @@ export type Database = {
           content: string
           created_at: string
           id: string
+          is_hidden: boolean
           is_locked: boolean
           novel_id: string
           title: string
@@ -60,6 +85,7 @@ export type Database = {
           content: string
           created_at?: string
           id?: string
+          is_hidden?: boolean
           is_locked?: boolean
           novel_id: string
           title: string
@@ -72,6 +98,7 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
+          is_hidden?: boolean
           is_locked?: boolean
           novel_id?: string
           title?: string
@@ -163,6 +190,7 @@ export type Database = {
           cover_image_url: string | null
           created_at: string
           id: string
+          is_hidden: boolean
           language: string | null
           status: string | null
           synopsis: string | null
@@ -178,6 +206,7 @@ export type Database = {
           cover_image_url?: string | null
           created_at?: string
           id?: string
+          is_hidden?: boolean
           language?: string | null
           status?: string | null
           synopsis?: string | null
@@ -193,6 +222,7 @@ export type Database = {
           cover_image_url?: string | null
           created_at?: string
           id?: string
+          is_hidden?: boolean
           language?: string | null
           status?: string | null
           synopsis?: string | null
@@ -368,13 +398,29 @@ export type Database = {
         Args: { p_user_id: string; p_amount: number; p_description?: string }
         Returns: Json
       }
+      admin_adjust_user_coins: {
+        Args: {
+          p_target_user_id: string
+          p_amount: number
+          p_description?: string
+        }
+        Returns: Json
+      }
+      get_user_admin_role: {
+        Args: { check_user_id: string }
+        Returns: Database["public"]["Enums"]["admin_role"]
+      }
+      is_super_admin: {
+        Args: { check_user_id: string }
+        Returns: boolean
+      }
       unlock_chapter_with_coins: {
         Args: { p_user_id: string; p_chapter_id: string; p_coin_cost: number }
         Returns: Json
       }
     }
     Enums: {
-      [_ in never]: never
+      admin_role: "super_admin" | "admin" | "moderator"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -489,6 +535,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      admin_role: ["super_admin", "admin", "moderator"],
+    },
   },
 } as const
