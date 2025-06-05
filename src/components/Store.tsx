@@ -13,16 +13,17 @@ interface CoinPackage {
   id: string;
   coins: number;
   price: string;
-  priceInCents: number;
+  priceInUSD: number;
   bonus?: number;
   popular?: boolean;
 }
 
 const coinPackages: CoinPackage[] = [
-  { id: 'small', coins: 10, price: '$0.99', priceInCents: 99 },
-  { id: 'medium', coins: 50, price: '$4.99', priceInCents: 499, bonus: 5 },
-  { id: 'large', coins: 100, price: '$9.99', priceInCents: 999, bonus: 15, popular: true },
-  { id: 'mega', coins: 250, price: '$19.99', priceInCents: 1999, bonus: 50 }
+  { id: 'starter', coins: 50, price: '$1.00', priceInUSD: 1.00 },
+  { id: 'small', coins: 100, price: '$2.00', priceInUSD: 2.00, bonus: 10 },
+  { id: 'medium', coins: 250, price: '$5.00', priceInUSD: 5.00, bonus: 25, popular: true },
+  { id: 'large', coins: 500, price: '$10.00', priceInUSD: 10.00, bonus: 75 },
+  { id: 'mega', coins: 1000, price: '$20.00', priceInUSD: 20.00, bonus: 200 }
 ];
 
 const Store = () => {
@@ -41,27 +42,27 @@ const Store = () => {
     setPurchasing(pkg.id);
     
     try {
-      // Call Stripe checkout function
-      const { data, error } = await supabase.functions.invoke('create-coin-payment', {
+      // Call PayPal payment function
+      const { data, error } = await supabase.functions.invoke('create-paypal-payment', {
         body: {
           coins: pkg.coins,
           bonus: pkg.bonus || 0,
-          price: pkg.priceInCents,
+          price: pkg.priceInUSD,
           packageId: pkg.id
         }
       });
 
       if (error) throw error;
 
-      if (data?.url) {
-        // Open Stripe checkout in a new tab
-        window.open(data.url, '_blank');
+      if (data?.approvalUrl) {
+        // Redirect to PayPal for payment approval
+        window.location.href = data.approvalUrl;
       } else {
-        throw new Error('No checkout URL received');
+        throw new Error('No PayPal approval URL received');
       }
     } catch (error) {
-      console.error('Error creating checkout session:', error);
-      toast.error('Failed to start checkout process');
+      console.error('Error creating PayPal payment:', error);
+      toast.error('Failed to start PayPal checkout process');
     } finally {
       setPurchasing(null);
     }
@@ -92,7 +93,7 @@ const Store = () => {
             Coin Store
           </h1>
           <p className="text-gray-300 text-lg">
-            Purchase coins to unlock premium chapters
+            Purchase coins to unlock premium chapters - $1 = 50 coins!
           </p>
           
           {user && (
@@ -103,7 +104,7 @@ const Store = () => {
           )}
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
           {coinPackages.map((pkg) => (
             <Card 
               key={pkg.id} 
@@ -123,30 +124,30 @@ const Store = () => {
               <CardHeader className="text-center">
                 <div className="flex justify-center mb-3">
                   <div className="p-3 bg-yellow-400/20 rounded-full">
-                    <Coins className="h-8 w-8 text-yellow-400" />
+                    <Coins className="h-6 w-6 text-yellow-400" />
                   </div>
                 </div>
-                <CardTitle className="text-2xl text-white">
+                <CardTitle className="text-xl text-white">
                   {pkg.coins} Coins
                 </CardTitle>
                 {pkg.bonus && (
                   <CardDescription className="text-green-400 font-medium flex items-center justify-center gap-1">
-                    <Zap className="h-4 w-4" />
+                    <Zap className="h-3 w-3" />
                     +{pkg.bonus} Bonus!
                   </CardDescription>
                 )}
-                <div className="text-3xl font-bold text-yellow-400 mt-2">
+                <div className="text-2xl font-bold text-yellow-400 mt-2">
                   {pkg.price}
                 </div>
               </CardHeader>
               
               <CardContent>
                 <Button
-                  className="w-full bg-yellow-600 hover:bg-yellow-700 text-black font-bold"
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold"
                   onClick={() => handlePurchase(pkg)}
                   disabled={purchasing === pkg.id}
                 >
-                  {purchasing === pkg.id ? 'Processing...' : 'Purchase'}
+                  {purchasing === pkg.id ? 'Processing...' : 'Pay with PayPal'}
                 </Button>
                 
                 <div className="mt-4 text-center text-sm text-gray-400">
@@ -164,8 +165,8 @@ const Store = () => {
               <div className="bg-blue-600/20 rounded-full p-3 w-12 h-12 mx-auto mb-3 flex items-center justify-center">
                 <span className="text-blue-400 font-bold">1</span>
               </div>
-              <h3 className="font-medium mb-2">Purchase Coins</h3>
-              <p className="text-sm">Buy coin packages to add to your balance</p>
+              <h3 className="font-medium mb-2">Purchase Coins via PayPal</h3>
+              <p className="text-sm">Buy coin packages securely with PayPal - $1 = 50 coins</p>
             </div>
             <div className="text-center">
               <div className="bg-blue-600/20 rounded-full p-3 w-12 h-12 mx-auto mb-3 flex items-center justify-center">
