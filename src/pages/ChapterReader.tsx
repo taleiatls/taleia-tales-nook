@@ -271,41 +271,36 @@ const ChapterReader = () => {
           </CardContent>
         </Card>
 
-        {/* Navigation - Mobile Friendly */}
-<div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+        <div className="flex justify-between items-center gap-4">
   {/* Previous Chapter */}
-  <div className="w-full sm:w-auto flex justify-start sm:justify-center">
-    {prevChapter ? (
-      <Link to={`/novel/${novelSlug}/chapter/${prevChapter}`} className="block w-full sm:w-auto">
-        <Button
-          variant="outline"
-          className="w-full sm:w-auto border-gray-600 text-gray-300 hover:bg-gray-700 flex items-center justify-center"
-        >
-          <ArrowLeft className="h-5 w-5" />
-          <span className="hidden sm:inline ml-2">Previous Chapter</span>
-        </Button>
-      </Link>
-    ) : (
-      <div className="w-full sm:w-auto"></div>
-    )}
-  </div>
+  {prevChapter ? (
+    <Link to={`/novel/${novelSlug}/chapter/${prevChapter}`}>
+      <Button
+        variant="outline"
+        className="p-2 sm:px-4 sm:py-2 border-gray-600 text-gray-300 hover:bg-gray-700 flex items-center"
+      >
+        <ArrowLeft className="h-5 w-5" />
+        <span className="hidden sm:inline ml-2">Previous Chapter</span>
+      </Button>
+    </Link>
+  ) : (
+    <div />
+  )}
 
   {/* Next Chapter */}
-  <div className="w-full sm:w-auto flex justify-end sm:justify-center">
-    {nextChapter ? (
-      <Link to={`/novel/${novelSlug}/chapter/${nextChapter}`} className="block w-full sm:w-auto">
-        <Button
-          variant="outline"
-          className="w-full sm:w-auto border-gray-600 text-gray-300 hover:bg-gray-700 flex items-center justify-center"
-        >
-          <span className="hidden sm:inline mr-2">Next Chapter</span>
-          <ArrowRight className="h-5 w-5" />
-        </Button>
-      </Link>
-    ) : (
-      <div className="w-full sm:w-auto"></div>
-    )}
-  </div>
+  {nextChapter ? (
+    <Link to={`/novel/${novelSlug}/chapter/${nextChapter}`}>
+      <Button
+        variant="outline"
+        className="p-2 sm:px-4 sm:py-2 border-gray-600 text-gray-300 hover:bg-gray-700 flex items-center"
+      >
+        <span className="hidden sm:inline mr-2">Next Chapter</span>
+        <ArrowRight className="h-5 w-5" />
+      </Button>
+    </Link>
+  ) : (
+    <div />
+  )}
 </div>
       </div>
     </div>
