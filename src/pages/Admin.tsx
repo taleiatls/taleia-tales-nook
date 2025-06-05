@@ -2,8 +2,6 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import { toast } from "@/components/ui/sonner";
 import { Shield, Users, BookOpen, FileText } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,28 +19,38 @@ const Admin = () => {
 
   useEffect(() => {
     const checkAdminAccess = async () => {
+      console.log("Checking admin access for user:", user?.id);
+      
       if (!user) {
+        console.log("No user found, redirecting to auth");
         navigate("/auth");
         return;
       }
 
       try {
+        console.log("Calling is_super_admin function...");
         const { data, error } = await supabase.rpc('is_super_admin', {
           check_user_id: user.id
         });
 
-        if (error) throw error;
+        console.log("is_super_admin result:", { data, error });
 
-        if (!data) {
-          toast.error("Access denied. Super admin privileges required.");
+        if (error) {
+          console.error("Error checking admin access:", error);
           navigate("/");
           return;
         }
 
+        if (!data) {
+          console.log("User is not a super admin");
+          navigate("/");
+          return;
+        }
+
+        console.log("User is a super admin, setting access");
         setIsAdmin(true);
       } catch (error) {
-        console.error("Error checking admin access:", error);
-        toast.error("Failed to verify admin access");
+        console.error("Error in checkAdminAccess:", error);
         navigate("/");
       } finally {
         setLoading(false);
@@ -68,7 +76,7 @@ const Admin = () => {
       <div className="min-h-screen bg-black">
         <Navbar />
         <div className="max-w-6xl mx-auto px-4 py-8 text-center text-gray-300">
-          <p>Access denied</p>
+          <p>Access denied. Super admin privileges required.</p>
         </div>
       </div>
     );
