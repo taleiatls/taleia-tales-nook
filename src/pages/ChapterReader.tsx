@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -53,6 +52,15 @@ const ChapterReader = () => {
   const [settings, setSettings] = useState<ReadingSettings>(defaultSettings);
   const [menuOpen, setMenuOpen] = useState(false);
   const [isChapterUnlocked, setIsChapterUnlocked] = useState(false);
+
+  const checkChapterAccess = useCallback(async (chapterData: Chapter) => {
+    if (chapterData.is_locked && user) {
+      const purchased = await checkChapterPurchased(chapterData.id);
+      setIsChapterUnlocked(purchased);
+    } else if (!chapterData.is_locked) {
+      setIsChapterUnlocked(true);
+    }
+  }, [user, checkChapterPurchased]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -113,12 +121,9 @@ const ChapterReader = () => {
         if (chapterError) throw chapterError;
         setChapter(chapterData);
 
-        // Check if chapter is unlocked for logged-in users
-        if (chapterData && chapterData.is_locked && user) {
-          const purchased = await checkChapterPurchased(chapterData.id);
-          setIsChapterUnlocked(purchased);
-        } else if (chapterData && !chapterData.is_locked) {
-          setIsChapterUnlocked(true);
+        // Check chapter access
+        if (chapterData) {
+          await checkChapterAccess(chapterData);
         }
 
         // Increment view count for this chapter (only if unlocked)
@@ -156,7 +161,14 @@ const ChapterReader = () => {
 
     fetchData();
     window.scrollTo(0, 0);
-  }, [novelIdOrSlug, chapterId, user, checkChapterPurchased]);
+  }, [novelIdOrSlug, chapterId, user]);
+
+  // Handle chapter unlock separately
+  useEffect(() => {
+    if (chapter) {
+      checkChapterAccess(chapter);
+    }
+  }, [chapter, checkChapterAccess]);
 
   const handleChapterUnlock = async () => {
     if (chapter) {
