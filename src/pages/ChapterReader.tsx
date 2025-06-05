@@ -134,11 +134,11 @@ const ChapterReader = () => {
       setLoading(false);
       setCheckingAccess(false);
     }
-  }, [id, chapterId, user?.id, navigate, checkChapterPurchased]);
+  }, [id, chapterId, navigate, checkChapterPurchased]);
 
   useEffect(() => {
     fetchChapterData();
-  }, [fetchChapterData]);
+  }, [id, chapterId]);
 
   // Load user reading settings
   useEffect(() => {
