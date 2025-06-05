@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -48,97 +48,97 @@ const ChapterReader = () => {
   const [lineHeight, setLineHeight] = useState(1.6);
   const [showSettings, setShowSettings] = useState(false);
 
-  useEffect(() => {
-    const fetchChapterData = async () => {
-      setLoading(true);
-      setCheckingAccess(true);
+  const fetchChapterData = useCallback(async () => {
+    if (!id || !chapterId) return;
+    
+    setLoading(true);
+    setCheckingAccess(true);
+    
+    try {
+      console.log("Fetching chapter with novel ID/slug:", id, "chapter:", chapterId);
       
-      try {
-        console.log("Fetching chapter with novel ID/slug:", id, "chapter:", chapterId);
-        
-        let novelData: Novel | null = null;
+      let novelData: Novel | null = null;
 
-        // Find the novel first
-        if (isUUID(id || '')) {
-          const { data, error } = await supabase
-            .from('novels')
-            .select('id, title, author, total_chapters')
-            .eq('id', id)
-            .maybeSingle();
-
-          if (error) throw error;
-          novelData = data;
-        } else {
-          // Search by slug
-          const { data: allNovels, error } = await supabase
-            .from('novels')
-            .select('id, title, author, total_chapters');
-
-          if (error) throw error;
-
-          novelData = allNovels?.find(novel => slugify(novel.title) === id) || null;
-        }
-
-        if (!novelData) {
-          toast.error("Novel not found");
-          navigate("/");
-          return;
-        }
-
-        setNovel(novelData);
-
-        // Fetch the specific chapter
-        const { data: chapterData, error: chapterError } = await supabase
-          .from('chapters')
-          .select('*')
-          .eq('novel_id', novelData.id)
-          .eq('chapter_number', parseInt(chapterId || '1'))
+      // Find the novel first
+      if (isUUID(id || '')) {
+        const { data, error } = await supabase
+          .from('novels')
+          .select('id, title, author, total_chapters')
+          .eq('id', id)
           .maybeSingle();
 
-        if (chapterError) throw chapterError;
+        if (error) throw error;
+        novelData = data;
+      } else {
+        // Search by slug
+        const { data: allNovels, error } = await supabase
+          .from('novels')
+          .select('id, title, author, total_chapters');
 
-        if (!chapterData) {
-          toast.error("Chapter not found");
-          navigate(`/novel/${id}`);
-          return;
-        }
+        if (error) throw error;
 
-        setChapter(chapterData);
-
-        // Check if chapter is locked and if user has access
-        if (chapterData.is_locked && user) {
-          const purchased = await checkChapterPurchased(chapterData.id);
-          setIsUnlocked(purchased);
-        } else if (!chapterData.is_locked) {
-          setIsUnlocked(true);
-        } else {
-          setIsUnlocked(false);
-        }
-
-        // Increment view count if chapter is accessible
-        if (!chapterData.is_locked || (chapterData.is_locked && user)) {
-          const purchased = chapterData.is_locked ? await checkChapterPurchased(chapterData.id) : true;
-          if (purchased) {
-            await supabase
-              .from('chapters')
-              .update({ views: (chapterData.views || 0) + 1 })
-              .eq('id', chapterData.id);
-          }
-        }
-
-      } catch (error) {
-        console.error("Error fetching chapter data:", error);
-        toast.error("Failed to load chapter");
-      } finally {
-        setLoading(false);
-        setCheckingAccess(false);
+        novelData = allNovels?.find(novel => slugify(novel.title) === id) || null;
       }
-    };
 
-    if (id && chapterId) {
-      fetchChapterData();
+      if (!novelData) {
+        toast.error("Novel not found");
+        navigate("/");
+        return;
+      }
+
+      setNovel(novelData);
+
+      // Fetch the specific chapter
+      const { data: chapterData, error: chapterError } = await supabase
+        .from('chapters')
+        .select('*')
+        .eq('novel_id', novelData.id)
+        .eq('chapter_number', parseInt(chapterId || '1'))
+        .maybeSingle();
+
+      if (chapterError) throw chapterError;
+
+      if (!chapterData) {
+        toast.error("Chapter not found");
+        navigate(`/novel/${id}`);
+        return;
+      }
+
+      setChapter(chapterData);
+
+      // Check if chapter is locked and if user has access
+      if (chapterData.is_locked && user) {
+        const purchased = await checkChapterPurchased(chapterData.id);
+        setIsUnlocked(purchased);
+      } else if (!chapterData.is_locked) {
+        setIsUnlocked(true);
+      } else {
+        setIsUnlocked(false);
+      }
+
+      // Increment view count if chapter is accessible
+      if (!chapterData.is_locked || (chapterData.is_locked && user)) {
+        const purchased = chapterData.is_locked ? await checkChapterPurchased(chapterData.id) : true;
+        if (purchased) {
+          await supabase
+            .from('chapters')
+            .update({ views: (chapterData.views || 0) + 1 })
+            .eq('id', chapterData.id);
+        }
+      }
+
+    } catch (error) {
+      console.error("Error fetching chapter data:", error);
+      toast.error("Failed to load chapter");
+    } finally {
+      setLoading(false);
+      setCheckingAccess(false);
     }
-  }, [id, chapterId, user, navigate, checkChapterPurchased]);
+  }, [id, chapterId, user?.id, navigate, checkChapterPurchased]);
+
+  useEffect(() => {
+    fetchChapterData();
+  }, [fetchChapterData]);
 
   // Load user reading settings
   useEffect(() => {
@@ -165,7 +165,7 @@ const ChapterReader = () => {
     };
 
     loadReadingSettings();
-  }, [user]);
+  }, [user?.id]);
 
   const saveReadingSettings = async () => {
     if (!user) return;
