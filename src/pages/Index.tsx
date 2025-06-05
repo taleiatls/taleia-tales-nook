@@ -144,11 +144,11 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Featured Novels - Fixed Grid Layout */}
+      {/* Featured Novels */}
       <section className="py-16">
         <div className="container mx-auto px-4">
           <h2 className="text-3xl font-bold mb-8">Featured Novels</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-3 gap-8">
             {featuredNovels.map((novel) => (
               <Card key={novel.id} className="bg-gray-800 border-gray-700 hover:border-blue-500 transition-colors">
                 <CardHeader>
@@ -167,6 +167,7 @@ const Index = () => {
                   <p className="text-gray-300 mb-4 line-clamp-3">{novel.synopsis}</p>
                   <div className="flex justify-between items-center mb-4">
                     <span className="text-sm text-gray-500">{novel.total_chapters} chapters</span>
+                    <span className="text-sm text-gray-500">{novel.total_views} views</span>
                   </div>
                   <Link to={`/novel/${slugify(novel.title)}`}>
                     <Button className="w-full">Start Reading</Button>
@@ -178,14 +179,14 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Recently Updated - Card Grid Instead of List */}
+      {/* Recently Updated */}
       <section className="py-16 bg-gray-800">
         <div className="container mx-auto px-4">
           <div className="flex items-center mb-8">
             <Clock className="mr-3 h-6 w-6 text-blue-400" />
             <h2 className="text-3xl font-bold">Recently Updated</h2>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             {recentlyUpdated.map((novel) => (
               <Card key={novel.id} className="bg-gray-700 border-gray-600 hover:border-blue-500 transition-colors">
                 <CardHeader className="pb-3">
@@ -239,6 +240,7 @@ const Index = () => {
                     <span>{novel.total_chapters} chapters</span>
                     <div className="flex items-center text-orange-400">
                       <Star className="h-3 w-3 mr-1" />
+                      <span>{novel.total_views}</span>
                     </div>
                   </div>
                   <Link to={`/novel/${slugify(novel.title)}`}>

@@ -22,14 +22,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Menubar,
-  MenubarContent,
-  MenubarItem,
-  MenubarMenu,
-  MenubarSeparator,
-  MenubarTrigger,
-} from "@/components/ui/menubar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 const Navbar = () => {
@@ -81,28 +73,6 @@ const Navbar = () => {
                 <span>{item.name}</span>
               </Link>
             ))}
-
-            {/* Reading Settings Menu */}
-            {user && (
-              <Menubar className="bg-transparent border-none">
-                <MenubarMenu>
-                  <MenubarTrigger className="text-gray-300 hover:text-blue-400 transition-colors cursor-pointer">
-                    <Settings className="h-4 w-4 mr-1" />
-                    Reading
-                  </MenubarTrigger>
-                  <MenubarContent className="bg-gray-900 border-gray-700 text-gray-300">
-                    <MenubarItem onClick={() => navigate("/settings")}>
-                      <Settings className="mr-2 h-4 w-4" />
-                      Reading Settings
-                    </MenubarItem>
-                    <MenubarSeparator className="bg-gray-700" />
-                    <MenubarItem onClick={() => navigate("/store")}>
-                      Store
-                    </MenubarItem>
-                  </MenubarContent>
-                </MenubarMenu>
-              </Menubar>
-            )}
           </div>
 
           {/* Auth Buttons / User Menu */}
@@ -137,6 +107,13 @@ const Navbar = () => {
                   >
                     <User className="mr-2 h-4 w-4" />
                     <span>Profile</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    className="hover:bg-gray-800 cursor-pointer"
+                    onClick={() => navigate("/settings")}
+                  >
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>Reading Settings</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator className="bg-gray-700" />
                   <DropdownMenuItem 

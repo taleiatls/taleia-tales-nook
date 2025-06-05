@@ -1,15 +1,14 @@
-
 import { useState, useEffect } from "react";
 import { useParams, Link, Navigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
-import { Star, BookOpen, Calendar, User, Tag, LogIn } from "lucide-react";
+import { Star, BookOpen, Calendar, User, Tag, ArrowUpDown, LogIn, Lock } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import Navbar from "@/components/Navbar";
-import ChapterListModal from "@/components/ChapterListModal";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -64,6 +63,7 @@ const NovelPage = () => {
   
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [reviewText, setReviewText] = useState("");
   const [userRating, setUserRating] = useState(0);
   const [novel, setNovel] = useState<Novel | null>(null);
@@ -227,6 +227,10 @@ const NovelPage = () => {
     }
   }, [id, user, navigate]);
 
+  const sortedChapters = [...chapters].sort((a, b) => {
+    return sortOrder === "asc" ? a.chapter_number - b.chapter_number : b.chapter_number - a.chapter_number;
+  });
+
   const handleReviewSubmit = async () => {
     if (!user) {
       toast.error("You must be logged in to submit a review");
@@ -363,6 +367,10 @@ const NovelPage = () => {
                     <span className="text-gray-500">Chapters:</span>
                     <span className="ml-2 text-gray-300">{chapters.length}</span>
                   </div>
+                  <div>
+                    <span className="text-gray-500">Views:</span>
+                    <span className="ml-2 text-gray-300">{novel.total_views || 0}</span>
+                  </div>
                 </div>
 
                 <div>
@@ -384,16 +392,12 @@ const NovelPage = () => {
                   Last updated: {formatDate(novel.updated_at)}
                 </div>
 
-                <div className="space-y-3">
-                  <Link to={`/novel/${novelSlug}/chapter/1`}>
-                    <Button className="w-full bg-blue-600 hover:bg-blue-700 text-lg py-6">
-                      <BookOpen className="mr-2 h-5 w-5" />
-                      Start Reading
-                    </Button>
-                  </Link>
-                  
-                  <ChapterListModal chapters={chapters} novelSlug={novelSlug} />
-                </div>
+                <Link to={`/novel/${novelSlug}/chapter/1`}>
+                  <Button className="w-full bg-blue-600 hover:bg-blue-700 text-lg py-6">
+                    <BookOpen className="mr-2 h-5 w-5" />
+                    Start Reading
+                  </Button>
+                </Link>
               </CardContent>
             </Card>
           </div>
@@ -401,8 +405,9 @@ const NovelPage = () => {
           {/* Content Area */}
           <div className="lg:col-span-2">
             <Tabs defaultValue="description" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 bg-gray-800 border-gray-700">
+              <TabsList className="grid w-full grid-cols-3 bg-gray-800 border-gray-700">
                 <TabsTrigger value="description" className="data-[state=active]:bg-blue-600">Description</TabsTrigger>
+                <TabsTrigger value="chapters" className="data-[state=active]:bg-blue-600">Chapters</TabsTrigger>
                 <TabsTrigger value="reviews" className="data-[state=active]:bg-blue-600">Reviews</TabsTrigger>
               </TabsList>
               
@@ -413,6 +418,64 @@ const NovelPage = () => {
                   </CardHeader>
                   <CardContent>
                     <p className="text-gray-300 leading-relaxed">{novel.synopsis}</p>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="chapters" className="mt-6">
+                <Card className="bg-gray-800 border-gray-700">
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <CardTitle className="text-gray-100">Chapter List ({chapters.length} chapters)</CardTitle>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
+                      className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                    >
+                      <ArrowUpDown className="h-4 w-4 mr-2" />
+                      {sortOrder === "asc" ? "Oldest First" : "Newest First"}
+                    </Button>
+                  </CardHeader>
+                  <CardContent>
+                    <ScrollArea className="h-96">
+                      <div className="space-y-2">
+                        {sortedChapters.length > 0 ? (
+                          sortedChapters.map((chapter) => (
+                            <Link
+                              key={chapter.id}
+                              to={`/novel/${novelSlug}/chapter/${chapter.chapter_number}`}
+                              className="block"
+                            >
+                              <div className="p-4 rounded-lg border border-gray-700 hover:bg-gray-700 transition-colors">
+                                <div className="flex justify-between items-start">
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <h4 className="font-medium text-gray-200">
+                                        Chapter {chapter.chapter_number}: {chapter.title}
+                                      </h4>
+                                      {chapter.is_locked && (
+                                        <div className="flex items-center gap-1">
+                                          <Lock className="h-4 w-4 text-yellow-400" />
+                                          <Badge variant="secondary" className="bg-yellow-600 text-black text-xs">
+                                            {chapter.coin_price} coins
+                                          </Badge>
+                                        </div>
+                                      )}
+                                    </div>
+                                    <p className="text-sm text-gray-500">{formatDate(chapter.created_at)}</p>
+                                  </div>
+                                  <span className="text-xs text-gray-400">{(chapter.views || 0).toLocaleString()} views</span>
+                                </div>
+                              </div>
+                            </Link>
+                          ))
+                        ) : (
+                          <div className="text-center py-4 text-gray-400">
+                            No chapters available yet.
+                          </div>
+                        )}
+                      </div>
+                    </ScrollArea>
                   </CardContent>
                 </Card>
               </TabsContent>
