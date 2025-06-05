@@ -1,9 +1,9 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight, BookOpen, Eye, Settings } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookOpen } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import Navbar from "@/components/Navbar";
 import LockedChapter from "@/components/LockedChapter";
@@ -46,7 +46,6 @@ const ChapterReader = () => {
   const [fontSize, setFontSize] = useState(18);
   const [fontFamily, setFontFamily] = useState('serif');
   const [lineHeight, setLineHeight] = useState(1.6);
-  const [showSettings, setShowSettings] = useState(false);
 
   const fetchChapterData = useCallback(async () => {
     if (!id || !chapterId) return;
@@ -134,7 +133,7 @@ const ChapterReader = () => {
       setLoading(false);
       setCheckingAccess(false);
     }
-  }, [id, chapterId, navigate, checkChapterPurchased]);
+  }, [id, chapterId, navigate]);
 
   useEffect(() => {
     fetchChapterData();
@@ -166,27 +165,6 @@ const ChapterReader = () => {
 
     loadReadingSettings();
   }, [user?.id]);
-
-  const saveReadingSettings = async () => {
-    if (!user) return;
-
-    try {
-      await supabase
-        .from('user_reading_settings')
-        .update({
-          font_size: fontSize,
-          font_family: fontFamily,
-          line_height: lineHeight,
-          updated_at: new Date().toISOString()
-        })
-        .eq('user_id', user.id);
-
-      toast.success("Reading settings saved");
-    } catch (error) {
-      console.error("Error saving reading settings:", error);
-      toast.error("Failed to save settings");
-    }
-  };
 
   const handleUnlockSuccess = () => {
     setIsUnlocked(true);
@@ -267,94 +245,13 @@ const ChapterReader = () => {
             </Button>
           </Link>
           
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-100 mb-2">{chapter.title}</h1>
-              <p className="text-gray-400">
-                Chapter {chapter.chapter_number} of {novel.total_chapters}
-              </p>
-            </div>
-            
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2 text-gray-400">
-                <Eye className="h-4 w-4" />
-                <span>{(chapter.views || 0).toLocaleString()} views</span>
-              </div>
-              
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowSettings(!showSettings)}
-                className="border-gray-600 text-gray-300 hover:bg-gray-700"
-              >
-                <Settings className="h-4 w-4" />
-              </Button>
-            </div>
+          <div className="mb-4">
+            <h1 className="text-3xl font-bold text-gray-100 mb-2">{chapter.title}</h1>
+            <p className="text-gray-400">
+              Chapter {chapter.chapter_number} of {novel.total_chapters}
+            </p>
           </div>
         </div>
-
-        {/* Reading Settings */}
-        {showSettings && (
-          <Card className="mb-6 bg-gray-800 border-gray-700">
-            <CardHeader>
-              <CardTitle className="text-gray-100">Reading Settings</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Font Size: {fontSize}px
-                  </label>
-                  <input
-                    type="range"
-                    min="14"
-                    max="24"
-                    value={fontSize}
-                    onChange={(e) => setFontSize(parseInt(e.target.value))}
-                    className="w-full"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Font Family
-                  </label>
-                  <select
-                    value={fontFamily}
-                    onChange={(e) => setFontFamily(e.target.value)}
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-gray-200"
-                  >
-                    <option value="serif">Serif</option>
-                    <option value="sans-serif">Sans Serif</option>
-                    <option value="monospace">Monospace</option>
-                  </select>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Line Height: {lineHeight}
-                  </label>
-                  <input
-                    type="range"
-                    min="1.2"
-                    max="2.0"
-                    step="0.1"
-                    value={lineHeight}
-                    onChange={(e) => setLineHeight(parseFloat(e.target.value))}
-                    className="w-full"
-                  />
-                </div>
-              </div>
-              
-              <Button
-                onClick={saveReadingSettings}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                Save Settings
-              </Button>
-            </CardContent>
-          </Card>
-        )}
 
         {/* Chapter Content */}
         <Card className="mb-8 bg-gray-800 border-gray-700">
