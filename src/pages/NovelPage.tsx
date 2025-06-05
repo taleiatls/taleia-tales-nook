@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
-import { Star, BookOpen, Calendar, User, Tag, ArrowUpDown, LogIn } from "lucide-react";
+import { Star, BookOpen, Calendar, User, Tag, ArrowUpDown, LogIn, Lock } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import Navbar from "@/components/Navbar";
 import { supabase } from "@/integrations/supabase/client";
@@ -42,6 +42,8 @@ interface Chapter {
   title: string;
   views: number;
   created_at: string;
+  is_locked: boolean;
+  coin_price: number;
 }
 
 interface Review {
@@ -88,7 +90,6 @@ const NovelPage = () => {
           novelQuery = novelQuery.eq('id', id);
         } else {
           // If it's a slug, we need to find the novel by title
-          // For now, we'll search by title similarity since we don't have a slug column
           const titleFromSlug = id?.replace(/-/g, ' ').toLowerCase() || '';
           console.log("Searching by slug-derived title:", titleFromSlug);
           
@@ -121,14 +122,15 @@ const NovelPage = () => {
 
           // Continue with the rest of the data fetching for the found novel
           if (matchingNovel) {
-            // Fetch chapters
+            // Fetch chapters - include all fields needed for locked chapter display
             const { data: chaptersData, error: chaptersError } = await supabase
               .from('chapters')
-              .select('*')
+              .select('id, novel_id, chapter_number, title, views, created_at, is_locked, coin_price')
               .eq('novel_id', matchingNovel.id)
               .order('chapter_number', { ascending: true });
 
             if (chaptersError) throw chaptersError;
+            console.log("Fetched chapters:", chaptersData);
             setChapters(chaptersData || []);
 
             // Fetch reviews with user information
@@ -176,14 +178,15 @@ const NovelPage = () => {
         console.log("Found novel:", novelData);
         setNovel(novelData);
 
-        // Fetch chapters
+        // Fetch chapters - include all fields needed for locked chapter display
         const { data: chaptersData, error: chaptersError } = await supabase
           .from('chapters')
-          .select('*')
+          .select('id, novel_id, chapter_number, title, views, created_at, is_locked, coin_price')
           .eq('novel_id', novelData.id)
           .order('chapter_number', { ascending: true });
 
         if (chaptersError) throw chaptersError;
+        console.log("Fetched chapters:", chaptersData);
         setChapters(chaptersData || []);
 
         // Fetch reviews with user information
@@ -358,7 +361,7 @@ const NovelPage = () => {
                   </div>
                   <div>
                     <span className="text-gray-500">Chapters:</span>
-                    <span className="ml-2 text-gray-300">{novel.total_chapters || 0}</span>
+                    <span className="ml-2 text-gray-300">{chapters.length}</span>
                   </div>
                   <div>
                     <span className="text-gray-500">Views:</span>
@@ -418,7 +421,7 @@ const NovelPage = () => {
               <TabsContent value="chapters" className="mt-6">
                 <Card className="bg-gray-800 border-gray-700">
                   <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle className="text-gray-100">Chapter List</CardTitle>
+                    <CardTitle className="text-gray-100">Chapter List ({chapters.length} chapters)</CardTitle>
                     <Button
                       variant="outline"
                       size="sm"
@@ -432,10 +435,8 @@ const NovelPage = () => {
                   <CardContent>
                     <ScrollArea className="h-96">
                       <div className="space-y-2">
-                        {chapters.length > 0 ? (
-                          [...chapters].sort((a, b) => {
-                            return sortOrder === "asc" ? a.chapter_number - b.chapter_number : b.chapter_number - a.chapter_number;
-                          }).map((chapter) => (
+                        {sortedChapters.length > 0 ? (
+                          sortedChapters.map((chapter) => (
                             <Link
                               key={chapter.id}
                               to={`/novel/${novelSlug}/chapter/${chapter.chapter_number}`}
@@ -443,8 +444,20 @@ const NovelPage = () => {
                             >
                               <div className="p-4 rounded-lg border border-gray-700 hover:bg-gray-700 transition-colors">
                                 <div className="flex justify-between items-start">
-                                  <div>
-                                    <h4 className="font-medium text-gray-200">{chapter.title}</h4>
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <h4 className="font-medium text-gray-200">
+                                        Chapter {chapter.chapter_number}: {chapter.title}
+                                      </h4>
+                                      {chapter.is_locked && (
+                                        <div className="flex items-center gap-1">
+                                          <Lock className="h-4 w-4 text-yellow-400" />
+                                          <Badge variant="secondary" className="bg-yellow-600 text-black text-xs">
+                                            {chapter.coin_price} coins
+                                          </Badge>
+                                        </div>
+                                      )}
+                                    </div>
                                     <p className="text-sm text-gray-500">{formatDate(chapter.created_at)}</p>
                                   </div>
                                   <span className="text-xs text-gray-400">{(chapter.views || 0).toLocaleString()} views</span>
@@ -469,7 +482,6 @@ const NovelPage = () => {
                     <CardTitle className="text-gray-100">Reader Reviews</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    {/* Add Review Form for logged-in users */}
                     {user ? (
                       <div className="mb-6 p-4 bg-gray-700 rounded-lg">
                         <h4 className="font-medium mb-3 text-gray-200">
@@ -521,7 +533,6 @@ const NovelPage = () => {
                       </div>
                     )}
 
-                    {/* Existing Reviews */}
                     <div className="space-y-6">
                       {reviews.length > 0 ? (
                         reviews.map((review) => (
