@@ -9,12 +9,46 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      chapter_purchases: {
+        Row: {
+          chapter_id: string
+          coins_spent: number
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          chapter_id: string
+          coins_spent?: number
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          chapter_id?: string
+          coins_spent?: number
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chapter_purchases_chapter_id_fkey"
+            columns: ["chapter_id"]
+            isOneToOne: false
+            referencedRelation: "chapters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chapters: {
         Row: {
           chapter_number: number
+          coin_price: number
           content: string
           created_at: string
           id: string
+          is_locked: boolean
           novel_id: string
           title: string
           updated_at: string
@@ -22,9 +56,11 @@ export type Database = {
         }
         Insert: {
           chapter_number: number
+          coin_price?: number
           content: string
           created_at?: string
           id?: string
+          is_locked?: boolean
           novel_id: string
           title: string
           updated_at?: string
@@ -32,9 +68,11 @@ export type Database = {
         }
         Update: {
           chapter_number?: number
+          coin_price?: number
           content?: string
           created_at?: string
           id?: string
+          is_locked?: boolean
           novel_id?: string
           title?: string
           updated_at?: string
@@ -46,6 +84,44 @@ export type Database = {
             columns: ["novel_id"]
             isOneToOne: false
             referencedRelation: "novels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coin_transactions: {
+        Row: {
+          amount: number
+          chapter_id: string | null
+          created_at: string
+          description: string | null
+          id: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          chapter_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          chapter_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coin_transactions_chapter_id_fkey"
+            columns: ["chapter_id"]
+            isOneToOne: false
+            referencedRelation: "chapters"
             referencedColumns: ["id"]
           },
         ]
@@ -218,6 +294,30 @@ export type Database = {
         }
         Relationships: []
       }
+      user_coins: {
+        Row: {
+          balance: number
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_reading_settings: {
         Row: {
           created_at: string
@@ -264,7 +364,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      add_coins_to_user: {
+        Args: { p_user_id: string; p_amount: number; p_description?: string }
+        Returns: Json
+      }
+      unlock_chapter_with_coins: {
+        Args: { p_user_id: string; p_chapter_id: string; p_coin_cost: number }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never
