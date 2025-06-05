@@ -1,289 +1,276 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { Search, BookOpen, Star, Clock, TrendingUp } from "lucide-react";
-import Navbar from "@/components/Navbar";
+import { BookOpen, Star, TrendingUp, Clock, Lock } from "lucide-react";
+import { Navbar } from "@/components/Navbar";
+import { supabase } from "@/integrations/supabase/client";
+import { slugify } from "@/lib/slugify";
 
-const featuredNovels = [
-  {
-    id: 1,
-    title: "The Mystic Chronicles",
-    author: "Elena Brightwater",
-    cover: "/placeholder.svg",
-    rating: 4.8,
-    tags: ["Fantasy", "Adventure"],
-    status: "Ongoing"
-  },
-  {
-    id: 2,
-    title: "Digital Hearts",
-    author: "Alex Chen",
-    cover: "/placeholder.svg",
-    rating: 4.6,
-    tags: ["Sci-Fi", "Romance"],
-    status: "Complete"
-  },
-  {
-    id: 3,
-    title: "Academy of Shadows",
-    author: "Morgan Vale",
-    cover: "/placeholder.svg",
-    rating: 4.9,
-    tags: ["Fantasy", "School"],
-    status: "Ongoing"
-  }
-];
-
-// Extended recently updated list with 15 items
-const allRecentlyUpdated = [
-  { id: 1, title: "The Mystic Chronicles", chapter: "Chapter 145: The Final Stand", time: "2 hours ago" },
-  { id: 2, title: "Digital Hearts", chapter: "Chapter 78: Unexpected Reunion", time: "5 hours ago" },
-  { id: 3, title: "Academy of Shadows", chapter: "Chapter 203: Hidden Truths", time: "1 day ago" },
-  { id: 4, title: "Starship Commander", chapter: "Chapter 92: Last Hope", time: "2 days ago" },
-  { id: 5, title: "Magic Academy Elite", chapter: "Chapter 156: Ancient Secrets", time: "3 days ago" },
-  { id: 6, title: "Virtual Reality Love", chapter: "Chapter 67: Digital Dreams", time: "4 days ago" },
-  { id: 7, title: "Shadow Hunter", chapter: "Chapter 234: Night Raid", time: "5 days ago" },
-  { id: 8, title: "Elemental Princess", chapter: "Chapter 89: Fire and Ice", time: "6 days ago" },
-  { id: 9, title: "Cyber Detective", chapter: "Chapter 123: Data Trail", time: "1 week ago" },
-  { id: 10, title: "Mystic Realm", chapter: "Chapter 178: Portal Gateway", time: "1 week ago" },
-  { id: 11, title: "Dragon Slayer Academy", chapter: "Chapter 145: Final Exam", time: "1 week ago" },
-  { id: 12, title: "Space Mercenary", chapter: "Chapter 201: Galactic War", time: "1 week ago" },
-  { id: 13, title: "Time Traveler's Diary", chapter: "Chapter 56: Past Mistakes", time: "2 weeks ago" },
-  { id: 14, title: "Immortal Cultivator", chapter: "Chapter 267: Heavenly Breakthrough", time: "2 weeks ago" },
-  { id: 15, title: "Dark Magic Academy", chapter: "Chapter 134: Forbidden Spells", time: "2 weeks ago" },
-];
-
-const popularThisWeek = [
-  { id: 1, title: "The Mystic Chronicles", views: "125K", rating: 4.8 },
-  { id: 2, title: "Digital Hearts", views: "98K", rating: 4.6 },
-  { id: 3, title: "Academy of Shadows", views: "156K", rating: 4.9 },
-];
+interface Novel {
+  id: string;
+  title: string;
+  author: string;
+  synopsis: string;
+  cover_image_url: string;
+  total_views: number;
+  total_chapters: number;
+  updated_at: string;
+  locked_chapters?: number;
+}
 
 const Index = () => {
-  const [currentPage, setCurrentPage] = useState(1);
-  const [showAllUpdated, setShowAllUpdated] = useState(false);
-  const itemsPerPage = 5;
+  const [featuredNovels, setFeaturedNovels] = useState<Novel[]>([]);
+  const [recentlyUpdated, setRecentlyUpdated] = useState<Novel[]>([]);
+  const [popularThisWeek, setPopularThisWeek] = useState<Novel[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const displayedUpdated = showAllUpdated 
-    ? allRecentlyUpdated.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
-    : allRecentlyUpdated.slice(0, 3);
+  useEffect(() => {
+    const fetchNovels = async () => {
+      try {
+        // Fetch all novels with their chapter counts
+        const { data: novels, error } = await supabase
+          .from('novels')
+          .select(`
+            id,
+            title,
+            author,
+            synopsis,
+            cover_image_url,
+            total_views,
+            total_chapters,
+            updated_at
+          `)
+          .order('created_at', { ascending: false });
 
-  const totalPages = Math.ceil(allRecentlyUpdated.length / itemsPerPage);
+        if (error) throw error;
 
-  const handleShowMore = () => {
-    setShowAllUpdated(true);
-    setCurrentPage(1);
+        if (novels) {
+          // For each novel, count locked chapters
+          const novelsWithLockInfo = await Promise.all(
+            novels.map(async (novel) => {
+              const { data: lockedChapters, error: chapterError } = await supabase
+                .from('chapters')
+                .select('id')
+                .eq('novel_id', novel.id)
+                .eq('is_locked', true);
+
+              if (chapterError) {
+                console.error('Error fetching locked chapters:', chapterError);
+                return { ...novel, locked_chapters: 0 };
+              }
+
+              return {
+                ...novel,
+                locked_chapters: lockedChapters?.length || 0
+              };
+            })
+          );
+
+          // Set featured novels (first 3)
+          setFeaturedNovels(novelsWithLockInfo.slice(0, 3));
+
+          // Recently updated (sorted by updated_at)
+          const recentlyUpdatedNovels = [...novelsWithLockInfo]
+            .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+            .slice(0, 4);
+          setRecentlyUpdated(recentlyUpdatedNovels);
+
+          // Popular this week (sorted by total_views)
+          const popularNovels = [...novelsWithLockInfo]
+            .sort((a, b) => (b.total_views || 0) - (a.total_views || 0))
+            .slice(0, 4);
+          setPopularThisWeek(popularNovels);
+        }
+      } catch (error) {
+        console.error('Error fetching novels:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchNovels();
+  }, []);
+
+  const formatTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+    
+    if (diffInHours < 1) return 'Just now';
+    if (diffInHours < 24) return `${diffInHours}h ago`;
+    const diffInDays = Math.floor(diffInHours / 24);
+    if (diffInDays < 7) return `${diffInDays}d ago`;
+    return `${Math.floor(diffInDays / 7)}w ago`;
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-900 text-white">
+        <Navbar />
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">Loading...</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen bg-gray-900 text-white">
       <Navbar />
       
       {/* Hero Section */}
-      <section className="relative py-20 px-4">
-        <div className="max-w-6xl mx-auto text-center">
-          <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 font-serif">
-            Welcome to <span className="text-blue-400">TaleiaTLS</span>
-          </h1>
-          <p className="text-xl md:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto">
-            Translated Light Stories Nest - Your cozy corner for immersive novel reading
+      <section className="relative bg-gradient-to-r from-blue-900 via-purple-900 to-indigo-900 py-20">
+        <div className="container mx-auto px-4 text-center">
+          <h1 className="text-5xl font-bold mb-6">Discover Amazing Stories</h1>
+          <p className="text-xl mb-8 text-gray-300">
+            Immerse yourself in captivating novels and support your favorite authors
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <div className="flex gap-4 justify-center">
             <Link to="/search">
-              <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-6 text-lg">
-                <Search className="mr-2 h-5 w-5" />
-                Explore Novels
+              <Button size="lg" className="bg-blue-600 hover:bg-blue-700">
+                <BookOpen className="mr-2 h-5 w-5" />
+                Browse Novels
               </Button>
             </Link>
-            <Button variant="outline" size="lg" className="px-8 py-6 text-lg border-blue-600 text-blue-400 hover:bg-blue-950">
-              <BookOpen className="mr-2 h-5 w-5" />
-              Latest Updates
-            </Button>
+            <Link to="/store">
+              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-gray-900">
+                Get Coins
+              </Button>
+            </Link>
           </div>
         </div>
       </section>
 
-      {/* Featured Novels Slider */}
-      <section className="py-16 px-4">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl font-bold text-white mb-8 text-center font-serif">Featured Novels</h2>
-          <div className="relative">
-            <Carousel 
-              className="w-full" 
-              opts={{
-                align: "start",
-                loop: true,
-                dragFree: true,
-              }}
-            >
-              <CarouselContent className="-ml-2 md:-ml-4">
-                {featuredNovels.map((novel) => (
-                  <CarouselItem key={novel.id} className="pl-2 md:pl-4 basis-[280px] md:basis-[320px] lg:basis-[350px]">
-                    <Card className="h-full hover:shadow-xl hover:shadow-blue-500/20 transition-all duration-300 bg-gray-900 border-gray-700 hover:border-blue-500/50">
-                      <CardHeader className="pb-2">
-                        <div className="aspect-[3/4] bg-gray-800 rounded-lg mb-4 overflow-hidden">
-                          <img 
-                            src={novel.cover} 
-                            alt={novel.title}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <CardTitle className="text-lg font-serif line-clamp-2 text-white">{novel.title}</CardTitle>
-                        <CardDescription className="text-gray-400">by {novel.author}</CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="flex items-center gap-2 mb-3">
-                          <div className="flex items-center">
-                            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
-                            <span className="text-sm font-medium text-gray-300">{novel.rating}</span>
-                          </div>
-                          <Badge variant={novel.status === "Ongoing" ? "default" : "secondary"}>
-                            {novel.status}
-                          </Badge>
-                        </div>
-                        <div className="flex flex-wrap gap-1 mb-4">
-                          {novel.tags.map((tag) => (
-                            <Badge key={tag} variant="outline" className="text-xs border-gray-600 text-gray-300">
-                              {tag}
-                            </Badge>
-                          ))}
-                        </div>
-                        <Link to={`/novel/${novel.title.toLowerCase().replace(/\s+/g, '-')}`}>
-                          <Button className="w-full bg-blue-600 hover:bg-blue-700">
-                            Read Now
-                          </Button>
-                        </Link>
-                      </CardContent>
-                    </Card>
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-            </Carousel>
-            
-            {/* Dots indicator */}
-            <div className="flex justify-center mt-6 gap-2">
-              {featuredNovels.map((_, index) => (
-                <div
-                  key={index}
-                  className="w-2 h-2 rounded-full bg-gray-600 hover:bg-blue-400 transition-colors cursor-pointer"
-                />
-              ))}
-            </div>
+      {/* Featured Novels */}
+      <section className="py-16">
+        <div className="container mx-auto px-4">
+          <h2 className="text-3xl font-bold mb-8">Featured Novels</h2>
+          <div className="grid md:grid-cols-3 gap-8">
+            {featuredNovels.map((novel) => (
+              <Card key={novel.id} className="bg-gray-800 border-gray-700 hover:border-blue-500 transition-colors">
+                <CardHeader>
+                  <div className="flex justify-between items-start mb-2">
+                    <CardTitle className="text-xl text-white line-clamp-2">{novel.title}</CardTitle>
+                    {novel.locked_chapters && novel.locked_chapters > 0 && (
+                      <Badge variant="secondary" className="bg-yellow-600 text-black">
+                        <Lock className="h-3 w-3 mr-1" />
+                        {novel.locked_chapters} Premium
+                      </Badge>
+                    )}
+                  </div>
+                  <CardDescription className="text-gray-400">by {novel.author}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-300 mb-4 line-clamp-3">{novel.synopsis}</p>
+                  <div className="flex justify-between items-center mb-4">
+                    <span className="text-sm text-gray-500">{novel.total_chapters} chapters</span>
+                    <span className="text-sm text-gray-500">{novel.total_views} views</span>
+                  </div>
+                  <Link to={`/novel/${slugify(novel.title)}`}>
+                    <Button className="w-full">Start Reading</Button>
+                  </Link>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Content Sections */}
-      <section className="py-16 px-4 bg-gray-950/50">
-        <div className="max-w-6xl mx-auto">
-          <div className="grid md:grid-cols-2 gap-8">
-            {/* Recently Updated */}
-            <Card className="bg-gray-900 border-gray-700">
-              <CardHeader>
-                <CardTitle className="flex items-center text-blue-400">
-                  <Clock className="mr-2 h-5 w-5" />
-                  Recently Updated
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {displayedUpdated.map((item) => (
-                  <div key={item.id} className="border-b border-gray-700 pb-3 last:border-b-0">
-                    <Link to={`/novel/${item.title.toLowerCase().replace(/\s+/g, '-')}`} className="hover:text-blue-400">
-                      <h4 className="font-medium mb-1 text-white">{item.title}</h4>
-                      <p className="text-sm text-gray-400 mb-1">{item.chapter}</p>
-                      <p className="text-xs text-gray-500">{item.time}</p>
-                    </Link>
+      {/* Recently Updated */}
+      <section className="py-16 bg-gray-800">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center mb-8">
+            <Clock className="mr-3 h-6 w-6 text-blue-400" />
+            <h2 className="text-3xl font-bold">Recently Updated</h2>
+          </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {recentlyUpdated.map((novel) => (
+              <Card key={novel.id} className="bg-gray-700 border-gray-600 hover:border-blue-500 transition-colors">
+                <CardHeader className="pb-3">
+                  <div className="flex justify-between items-start">
+                    <CardTitle className="text-lg text-white line-clamp-2">{novel.title}</CardTitle>
+                    {novel.locked_chapters && novel.locked_chapters > 0 && (
+                      <Lock className="h-4 w-4 text-yellow-400 flex-shrink-0 ml-2" />
+                    )}
                   </div>
-                ))}
-                
-                {!showAllUpdated && (
-                  <Button 
-                    variant="outline" 
-                    className="w-full mt-4 border-gray-600 text-gray-300 hover:bg-gray-800"
-                    onClick={handleShowMore}
-                  >
-                    Show More
-                  </Button>
-                )}
-                
-                {showAllUpdated && totalPages > 1 && (
-                  <Pagination className="mt-6">
-                    <PaginationContent>
-                      <PaginationItem>
-                        <PaginationPrevious 
-                          href="#"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            if (currentPage > 1) setCurrentPage(currentPage - 1);
-                          }}
-                          className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
-                        />
-                      </PaginationItem>
-                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                        <PaginationItem key={page}>
-                          <PaginationLink
-                            href="#"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              setCurrentPage(page);
-                            }}
-                            isActive={currentPage === page}
-                          >
-                            {page}
-                          </PaginationLink>
-                        </PaginationItem>
-                      ))}
-                      <PaginationItem>
-                        <PaginationNext 
-                          href="#"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            if (currentPage < totalPages) setCurrentPage(currentPage + 1);
-                          }}
-                          className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}
-                        />
-                      </PaginationItem>
-                    </PaginationContent>
-                  </Pagination>
-                )}
-              </CardContent>
-            </Card>
+                  <CardDescription className="text-gray-400 text-sm">by {novel.author}</CardDescription>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="flex justify-between items-center text-sm text-gray-500 mb-3">
+                    <span>{novel.total_chapters} chapters</span>
+                    <span className="text-green-400">{formatTimeAgo(novel.updated_at)}</span>
+                  </div>
+                  <Link to={`/novel/${slugify(novel.title)}`}>
+                    <Button size="sm" className="w-full">Read Now</Button>
+                  </Link>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
 
-            {/* Popular This Week */}
-            <Card className="bg-gray-900 border-gray-700">
-              <CardHeader>
-                <CardTitle className="flex items-center text-blue-400">
-                  <TrendingUp className="mr-2 h-5 w-5" />
-                  Popular This Week
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {popularThisWeek.map((item, index) => (
-                  <div key={item.id} className="flex items-center gap-3 border-b border-gray-700 pb-3 last:border-b-0">
-                    <div className="w-8 h-8 bg-blue-900 rounded-full flex items-center justify-center text-blue-400 font-bold">
-                      {index + 1}
-                    </div>
-                    <div className="flex-1">
-                      <Link to={`/novel/${item.title.toLowerCase().replace(/\s+/g, '-')}`} className="hover:text-blue-400">
-                        <h4 className="font-medium text-white">{item.title}</h4>
-                        <div className="flex items-center gap-3 text-sm text-gray-400">
-                          <span>{item.views} views</span>
-                          <div className="flex items-center">
-                            <Star className="h-3 w-3 fill-yellow-400 text-yellow-400 mr-1" />
-                            {item.rating}
-                          </div>
-                        </div>
-                      </Link>
+      {/* Popular This Week */}
+      <section className="py-16">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center mb-8">
+            <TrendingUp className="mr-3 h-6 w-6 text-orange-400" />
+            <h2 className="text-3xl font-bold">Popular This Week</h2>
+          </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {popularThisWeek.map((novel, index) => (
+              <Card key={novel.id} className="bg-gray-800 border-gray-700 hover:border-orange-500 transition-colors relative">
+                <div className="absolute top-2 left-2 bg-orange-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">
+                  {index + 1}
+                </div>
+                <CardHeader className="pb-3">
+                  <div className="flex justify-between items-start pt-6">
+                    <CardTitle className="text-lg text-white line-clamp-2">{novel.title}</CardTitle>
+                    {novel.locked_chapters && novel.locked_chapters > 0 && (
+                      <Lock className="h-4 w-4 text-yellow-400 flex-shrink-0 ml-2" />
+                    )}
+                  </div>
+                  <CardDescription className="text-gray-400 text-sm">by {novel.author}</CardDescription>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="flex justify-between items-center text-sm text-gray-500 mb-3">
+                    <span>{novel.total_chapters} chapters</span>
+                    <div className="flex items-center text-orange-400">
+                      <Star className="h-3 w-3 mr-1" />
+                      <span>{novel.total_views}</span>
                     </div>
                   </div>
-                ))}
-              </CardContent>
-            </Card>
+                  <Link to={`/novel/${slugify(novel.title)}`}>
+                    <Button size="sm" className="w-full">Read Now</Button>
+                  </Link>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Call to Action */}
+      <section className="py-16 bg-gradient-to-r from-purple-900 to-blue-900">
+        <div className="container mx-auto px-4 text-center">
+          <h2 className="text-3xl font-bold mb-6">Ready to Start Reading?</h2>
+          <p className="text-xl mb-8 text-gray-300">
+            Join thousands of readers and discover your next favorite story
+          </p>
+          <div className="flex gap-4 justify-center">
+            <Link to="/auth">
+              <Button size="lg" className="bg-white text-gray-900 hover:bg-gray-100">
+                Sign Up Free
+              </Button>
+            </Link>
+            <Link to="/search">
+              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-gray-900">
+                Browse All Novels
+              </Button>
+            </Link>
           </div>
         </div>
       </section>
