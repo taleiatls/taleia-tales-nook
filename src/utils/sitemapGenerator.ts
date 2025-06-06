@@ -10,7 +10,8 @@ interface SitemapUrl {
 }
 
 export async function generateSitemap(): Promise<string> {
-  const baseUrl = window.location.origin;
+  // Use the published domain URL
+  const baseUrl = 'https://taleiatls.com';
   const urls: SitemapUrl[] = [];
 
   // Add static pages
