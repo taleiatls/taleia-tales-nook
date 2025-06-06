@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/sonner";
-import { Download, FileText, Search } from "lucide-react";
+import { Download, FileText, Search, ExternalLink } from "lucide-react";
 import { generateSitemap, downloadSitemap } from "@/utils/sitemapGenerator";
 
 const SEOManagement = () => {
@@ -50,10 +50,14 @@ Allow: /
 User-agent: *
 Allow: /
 
-Sitemap: ${window.location.origin}/sitemap.xml`;
+Sitemap: https://taleiatls.com/sitemap.xml`;
 
     navigator.clipboard.writeText(robotsContent);
     toast.success("Robots.txt content copied to clipboard!");
+  };
+
+  const openSitemapUrl = () => {
+    window.open('/sitemap.xml', '_blank');
   };
 
   return (
@@ -69,10 +73,10 @@ Sitemap: ${window.location.origin}/sitemap.xml`;
           <CardHeader>
             <CardTitle className="text-gray-100 flex items-center space-x-2">
               <FileText className="h-5 w-5" />
-              <span>Sitemap Generation</span>
+              <span>Dynamic Sitemap</span>
             </CardTitle>
             <CardDescription className="text-gray-400">
-              Generate XML sitemap for search engines
+              Your sitemap is automatically generated at /sitemap.xml
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -82,7 +86,15 @@ Sitemap: ${window.location.origin}/sitemap.xml`;
                 disabled={isGenerating}
                 className="bg-blue-500 hover:bg-blue-600"
               >
-                {isGenerating ? "Generating..." : "Generate Sitemap"}
+                {isGenerating ? "Generating..." : "Preview Sitemap"}
+              </Button>
+              <Button 
+                onClick={openSitemapUrl}
+                variant="outline"
+                className="border-gray-600 text-gray-300 hover:bg-gray-700"
+              >
+                <ExternalLink className="h-4 w-4 mr-2" />
+                View Live
               </Button>
               {sitemapPreview && (
                 <Button 
@@ -94,6 +106,12 @@ Sitemap: ${window.location.origin}/sitemap.xml`;
                   Download
                 </Button>
               )}
+            </div>
+
+            <div className="text-sm text-gray-400 bg-gray-900 p-3 rounded">
+              <p><strong>Live URL:</strong> /sitemap.xml</p>
+              <p><strong>Updates:</strong> Automatically when novels are added/updated</p>
+              <p><strong>Format:</strong> XML Sitemap Protocol</p>
             </div>
             
             {sitemapPreview && (
@@ -110,9 +128,9 @@ Sitemap: ${window.location.origin}/sitemap.xml`;
         {/* Robots.txt Management */}
         <Card className="bg-gray-800 border-gray-700">
           <CardHeader>
-            <CardTitle className="text-gray-100">Robots.txt</CardTitle>
+            <CardTitle className="text-gray-100">Robots.txt Configuration</CardTitle>
             <CardDescription className="text-gray-400">
-              Current robots.txt configuration
+              Updated robots.txt for taleiatls.com
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -124,9 +142,10 @@ Sitemap: ${window.location.origin}/sitemap.xml`;
               Copy Updated Robots.txt
             </Button>
             
-            <div className="text-sm text-gray-400">
-              <p>Current robots.txt allows all crawlers.</p>
-              <p className="mt-2">Copy the updated content and replace your robots.txt file to include sitemap reference.</p>
+            <div className="text-sm text-gray-400 bg-gray-900 p-3 rounded">
+              <p><strong>Sitemap URL:</strong> https://taleiatls.com/sitemap.xml</p>
+              <p className="mt-2">This robots.txt allows all crawlers and points to your dynamic sitemap.</p>
+              <p className="mt-2">Place this content in your domain's robots.txt file.</p>
             </div>
           </CardContent>
         </Card>
@@ -135,15 +154,15 @@ Sitemap: ${window.location.origin}/sitemap.xml`;
       {/* SEO Tips */}
       <Card className="bg-gray-800 border-gray-700">
         <CardHeader>
-          <CardTitle className="text-gray-100">SEO Best Practices</CardTitle>
+          <CardTitle className="text-gray-100">Dynamic Sitemap Benefits</CardTitle>
         </CardHeader>
         <CardContent>
           <ul className="space-y-2 text-gray-300 text-sm">
-            <li>• Generate and submit your sitemap to Google Search Console</li>
-            <li>• Ensure all novel pages have unique, descriptive titles</li>
-            <li>• Add meta descriptions to improve click-through rates</li>
-            <li>• Use structured data for better search result appearance</li>
-            <li>• Monitor your site's performance in search analytics</li>
+            <li>• Your sitemap updates automatically when new novels are published</li>
+            <li>• Search engines can access it at /sitemap.xml without manual uploads</li>
+            <li>• Submit https://taleiatls.com/sitemap.xml to Google Search Console</li>
+            <li>• No need to regenerate or re-upload the sitemap manually</li>
+            <li>• Always includes the latest content with proper last modified dates</li>
           </ul>
         </CardContent>
       </Card>

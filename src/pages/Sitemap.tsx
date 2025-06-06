@@ -10,9 +10,6 @@ const Sitemap = () => {
       try {
         const content = await generateSitemap();
         setSitemapContent(content);
-        
-        // Set the content type to XML
-        document.contentType = 'application/xml';
       } catch (error) {
         console.error('Error generating sitemap:', error);
       }
