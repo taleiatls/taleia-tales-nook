@@ -10,8 +10,7 @@ import {
   LogIn,
   LogOut,
   User,
-  Settings,
-  Coins
+  Settings
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -57,18 +56,9 @@ const Navbar = () => {
     navigate("/");
   };
 
-  const handleStoreClick = () => {
-    if (!user) {
-      navigate("/auth");
-    } else {
-      navigate("/store");
-    }
-  };
-
   const navItems = [
     { name: "Home", href: "/", icon: Home },
     { name: "Browse", href: "/search", icon: Search },
-    { name: "Store", href: "/store", icon: Coins, onClick: handleStoreClick },
     ...(isAdmin ? [{ name: "Admin", href: "/admin", icon: Settings }] : []),
   ];
 
@@ -101,25 +91,14 @@ const Navbar = () => {
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
             {navItems.map((item) => (
-              item.onClick ? (
-                <button
-                  key={item.name}
-                  onClick={item.onClick}
-                  className="flex items-center space-x-1 text-gray-300 hover:text-blue-400 transition-colors"
-                >
-                  <item.icon className="h-4 w-4" />
-                  <span>{item.name}</span>
-                </button>
-              ) : (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  className="flex items-center space-x-1 text-gray-300 hover:text-blue-400 transition-colors"
-                >
-                  <item.icon className="h-4 w-4" />
-                  <span>{item.name}</span>
-                </Link>
-              )
+              <Link
+                key={item.name}
+                to={item.href}
+                className="flex items-center space-x-1 text-gray-300 hover:text-blue-400 transition-colors"
+              >
+                <item.icon className="h-4 w-4" />
+                <span>{item.name}</span>
+              </Link>
             ))}
           </div>
 
@@ -187,29 +166,15 @@ const Navbar = () => {
               <SheetContent side="right" className="w-64 bg-black border-gray-800">
                 <div className="flex flex-col space-y-4 mt-8">
                   {navItems.map((item) => (
-                    item.onClick ? (
-                      <button
-                        key={item.name}
-                        onClick={() => {
-                          item.onClick();
-                          setIsOpen(false);
-                        }}
-                        className="flex items-center space-x-3 text-gray-300 hover:text-blue-400 transition-colors p-2 rounded-lg hover:bg-gray-900"
-                      >
-                        <item.icon className="h-5 w-5" />
-                        <span className="text-lg">{item.name}</span>
-                      </button>
-                    ) : (
-                      <Link
-                        key={item.name}
-                        to={item.href}
-                        className="flex items-center space-x-3 text-gray-300 hover:text-blue-400 transition-colors p-2 rounded-lg hover:bg-gray-900"
-                        onClick={() => setIsOpen(false)}
-                      >
-                        <item.icon className="h-5 w-5" />
-                        <span className="text-lg">{item.name}</span>
-                      </Link>
-                    )
+                    <Link
+                      key={item.name}
+                      to={item.href}
+                      className="flex items-center space-x-3 text-gray-300 hover:text-blue-400 transition-colors p-2 rounded-lg hover:bg-gray-900"
+                      onClick={() => setIsOpen(false)}
+                    >
+                      <item.icon className="h-5 w-5" />
+                      <span className="text-lg">{item.name}</span>
+                    </Link>
                   ))}
                   
                   {/* Mobile Auth Links */}

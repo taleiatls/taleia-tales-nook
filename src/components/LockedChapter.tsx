@@ -3,7 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Lock, Coins } from 'lucide-react';
 import { useCoins } from '@/hooks/useCoins';
-import { Link } from 'react-router-dom';
 
 interface LockedChapterProps {
   chapterId: string;
@@ -57,11 +56,7 @@ const LockedChapter = ({ chapterId, chapterTitle, coinPrice, novelId, onUnlock }
         ) : (
           <div className="space-y-3">
             <p className="text-red-400 text-sm">Insufficient coins</p>
-            <Link to="/store">
-              <Button className="w-full bg-blue-600 hover:bg-blue-700">
-                Buy More Coins
-              </Button>
-            </Link>
+            <p className="text-gray-400 text-sm">Contact admin to purchase coins</p>
           </div>
         )}
       </CardContent>
