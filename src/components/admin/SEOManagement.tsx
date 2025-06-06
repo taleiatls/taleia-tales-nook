@@ -3,13 +3,15 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/sonner";
-import { Download, FileText, Search, ExternalLink, RefreshCw } from "lucide-react";
-import { generateSitemap, downloadSitemap } from "@/utils/sitemapGenerator";
+import { Download, FileText, Search, ExternalLink, RefreshCw, Copy } from "lucide-react";
+import { generateSitemap } from "@/utils/sitemapGenerator";
+import { updateSitemapFile, getSitemapContent } from "@/utils/sitemapUpdater";
 
 const SEOManagement = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [sitemapPreview, setSitemapPreview] = useState<string>("");
+  const [showFullContent, setShowFullContent] = useState(false);
 
   const handleGenerateSitemap = async () => {
     setIsGenerating(true);
@@ -28,22 +30,16 @@ const SEOManagement = () => {
   const handleUpdateSitemap = async () => {
     setIsUpdating(true);
     try {
-      const sitemapContent = await generateSitemap();
+      const success = await updateSitemapFile();
       
-      // Create a download link to save the updated sitemap
-      const blob = new Blob([sitemapContent], { type: 'application/xml' });
-      const url = URL.createObjectURL(blob);
-      
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = 'sitemap.xml';
-      link.style.display = 'none';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-      
-      toast.success("Sitemap updated! Please upload the downloaded file to replace the current sitemap.xml");
+      if (success) {
+        // Also get the content for preview
+        const content = await getSitemapContent();
+        setSitemapPreview(content);
+        toast.success("Sitemap downloaded! Please replace the sitemap.xml file in your public folder with the downloaded file.");
+      } else {
+        toast.error("Failed to update sitemap");
+      }
     } catch (error) {
       console.error("Error updating sitemap:", error);
       toast.error("Failed to update sitemap");
@@ -52,13 +48,14 @@ const SEOManagement = () => {
     }
   };
 
-  const handleDownloadSitemap = async () => {
+  const handleCopySitemap = async () => {
     try {
-      await downloadSitemap();
-      toast.success("Sitemap downloaded!");
+      const content = await getSitemapContent();
+      await navigator.clipboard.writeText(content);
+      toast.success("Sitemap content copied to clipboard! You can now manually update the sitemap.xml file.");
     } catch (error) {
-      console.error("Error downloading sitemap:", error);
-      toast.error("Failed to download sitemap");
+      console.error("Error copying sitemap:", error);
+      toast.error("Failed to copy sitemap content");
     }
   };
 
@@ -122,7 +119,15 @@ Sitemap: https://taleiatls.com/sitemap.xml`;
                 className="bg-green-500 hover:bg-green-600"
               >
                 <RefreshCw className="h-4 w-4 mr-2" />
-                {isUpdating ? "Updating..." : "Update Sitemap"}
+                {isUpdating ? "Updating..." : "Download Sitemap"}
+              </Button>
+              <Button 
+                onClick={handleCopySitemap}
+                variant="outline"
+                className="border-gray-600 text-gray-300 hover:bg-gray-700"
+              >
+                <Copy className="h-4 w-4 mr-2" />
+                Copy Content
               </Button>
               <Button 
                 onClick={openSitemapUrl}
@@ -132,32 +137,35 @@ Sitemap: https://taleiatls.com/sitemap.xml`;
                 <ExternalLink className="h-4 w-4 mr-2" />
                 View Live
               </Button>
-              {sitemapPreview && (
-                <Button 
-                  onClick={handleDownloadSitemap}
-                  variant="outline"
-                  className="border-gray-600 text-gray-300 hover:bg-gray-700"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Download
-                </Button>
-              )}
             </div>
 
             <div className="text-sm text-gray-400 bg-gray-900 p-3 rounded">
               <p><strong>Current URL:</strong> /sitemap.xml</p>
-              <p><strong>Updates:</strong> Manual update using "Update Sitemap" button</p>
+              <p><strong>Updates:</strong> Download updated file and replace public/sitemap.xml</p>
               <p><strong>Format:</strong> XML Sitemap Protocol</p>
               <p className="mt-2 text-yellow-400">
-                <strong>Note:</strong> After clicking "Update Sitemap", upload the downloaded file to replace the current sitemap.xml
+                <strong>Instructions:</strong> 
+                1. Click "Download Sitemap" to get the updated file<br/>
+                2. Replace the sitemap.xml in your public folder<br/>
+                3. Or use "Copy Content" to manually update the file
               </p>
             </div>
             
             {sitemapPreview && (
               <div className="mt-4">
-                <p className="text-sm text-gray-400 mb-2">Preview (first 500 characters):</p>
-                <pre className="bg-gray-900 p-3 rounded text-xs text-gray-300 overflow-x-auto">
-                  {sitemapPreview.substring(0, 500)}...
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm text-gray-400">Sitemap Content:</p>
+                  <Button
+                    onClick={() => setShowFullContent(!showFullContent)}
+                    variant="outline"
+                    size="sm"
+                    className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                  >
+                    {showFullContent ? "Show Less" : "Show Full"}
+                  </Button>
+                </div>
+                <pre className="bg-gray-900 p-3 rounded text-xs text-gray-300 overflow-x-auto max-h-96 overflow-y-auto">
+                  {showFullContent ? sitemapPreview : sitemapPreview.substring(0, 500) + (sitemapPreview.length > 500 ? "..." : "")}
                 </pre>
               </div>
             )}
@@ -197,8 +205,9 @@ Sitemap: https://taleiatls.com/sitemap.xml`;
         </CardHeader>
         <CardContent>
           <ul className="space-y-2 text-gray-300 text-sm">
-            <li>• Use "Update Sitemap" to generate a new sitemap with all current novels</li>
-            <li>• Download and upload the new sitemap.xml to replace the current one</li>
+            <li>• Use "Download Sitemap" to get an updated sitemap with all current novels</li>
+            <li>• Replace the sitemap.xml file in your public folder with the downloaded version</li>
+            <li>• Alternatively, use "Copy Content" to manually copy and paste the sitemap content</li>
             <li>• Submit https://taleiatls.com/sitemap.xml to Google Search Console after updates</li>
             <li>• Update the sitemap whenever you add new novels or make significant changes</li>
             <li>• The sitemap includes proper last modified dates for better SEO</li>
