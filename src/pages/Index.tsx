@@ -135,11 +135,20 @@ const Index = () => {
                   >
                     <div className="flex h-full">
                       {novel.cover_image_url && (
-                        <div className="w-1/3 h-full overflow-hidden">
+                        <div className="w-1/3 h-full flex items-center justify-center bg-gray-900">
                           <img
                             src={novel.cover_image_url}
                             alt={`Cover of ${novel.title}`}
-                            className="w-full h-full object-contain bg-gray-900"
+                            className="max-w-full max-h-full object-cover rounded-lg shadow-lg"
+                            style={{ width: 'auto', height: '90%' }}
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                            }}
+                            onLoad={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'block';
+                            }}
                           />
                         </div>
                       )}
