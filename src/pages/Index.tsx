@@ -241,7 +241,7 @@ const Index = () => {
                       // Desktop layout: Side by side
                       <div className="flex h-full">
                         {novel.cover_image_url && (
-                          <div className="w-1/3 h-full flex items-center justify-center">
+                          <div className="w-1/4 h-full flex items-center justify-center">
                             <img
                               src={novel.cover_image_url}
                               alt={`Cover of ${novel.title}`}
