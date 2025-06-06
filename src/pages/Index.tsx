@@ -7,6 +7,7 @@ import { toast } from "@/components/ui/sonner";
 import Navbar from "@/components/Navbar";
 import { supabase } from "@/integrations/supabase/client";
 import HomeBannerAd from "@/components/ads/HomeBannerAd";
+import { slugify } from "@/lib/slugify";
 import {
   Pagination,
   PaginationContent,
@@ -116,32 +117,35 @@ const Index = () => {
               className="flex transition-transform duration-500 ease-in-out h-full"
               style={{ transform: `translateX(-${currentSlide * 100}%)` }}
             >
-              {featuredNovels.map((novel) => (
-                <Link 
-                  key={novel.id} 
-                  to={`/novel/${novel.id}`}
-                  className="flex-shrink-0 w-full h-full relative block"
-                >
-                  <div className="flex h-full">
-                    {novel.cover_image_url && (
-                      <div className="w-1/3 h-full">
-                        <img
-                          src={novel.cover_image_url}
-                          alt={`Cover of ${novel.title}`}
-                          className="w-full h-full object-cover"
-                        />
+              {featuredNovels.map((novel) => {
+                const novelSlug = slugify(novel.title);
+                return (
+                  <Link 
+                    key={novel.id} 
+                    to={`/novel/${novelSlug}`}
+                    className="flex-shrink-0 w-full h-full relative block"
+                  >
+                    <div className="flex h-full">
+                      {novel.cover_image_url && (
+                        <div className="w-1/3 h-full">
+                          <img
+                            src={novel.cover_image_url}
+                            alt={`Cover of ${novel.title}`}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      )}
+                      <div className="flex-1 p-8 flex flex-col justify-center">
+                        <h3 className="text-3xl font-bold text-white mb-2">{novel.title}</h3>
+                        <p className="text-gray-300 mb-4">By {novel.author}</p>
+                        <p className="text-gray-400 text-lg leading-relaxed">
+                          {novel.synopsis?.substring(0, 200)}...
+                        </p>
                       </div>
-                    )}
-                    <div className="flex-1 p-8 flex flex-col justify-center">
-                      <h3 className="text-3xl font-bold text-white mb-2">{novel.title}</h3>
-                      <p className="text-gray-300 mb-4">By {novel.author}</p>
-                      <p className="text-gray-400 text-lg leading-relaxed">
-                        {novel.synopsis?.substring(0, 200)}...
-                      </p>
                     </div>
-                  </div>
-                </Link>
-              ))}
+                  </Link>
+                );
+              })}
             </div>
           )}
           
@@ -184,26 +188,29 @@ const Index = () => {
         <section className="lg:col-span-2">
           <h2 className="text-2xl font-bold text-white mb-6">Recently Updated</h2>
           <div className="space-y-4">
-            {paginatedNovels.map((novel) => (
-              <Link key={novel.id} to={`/novel/${novel.id}`}>
-                <Card className="bg-gray-800 border-gray-700 hover:bg-gray-700 transition-colors">
-                  <CardContent className="p-4">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="text-lg font-semibold text-gray-100">{novel.title}</h3>
-                        <p className="text-gray-400">By {novel.author}</p>
-                        <p className="text-gray-300 text-sm mt-2">
-                          {novel.synopsis?.substring(0, 150)}...
-                        </p>
+            {paginatedNovels.map((novel) => {
+              const novelSlug = slugify(novel.title);
+              return (
+                <Link key={novel.id} to={`/novel/${novelSlug}`}>
+                  <Card className="bg-gray-800 border-gray-700 hover:bg-gray-700 transition-colors">
+                    <CardContent className="p-4">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-100">{novel.title}</h3>
+                          <p className="text-gray-400">By {novel.author}</p>
+                          <p className="text-gray-300 text-sm mt-2">
+                            {novel.synopsis?.substring(0, 150)}...
+                          </p>
+                        </div>
+                        <span className="text-xs text-gray-500">
+                          {new Date(novel.created_at).toLocaleDateString()}
+                        </span>
                       </div>
-                      <span className="text-xs text-gray-500">
-                        {new Date(novel.created_at).toLocaleDateString()}
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
+                    </CardContent>
+                  </Card>
+                </Link>
+              );
+            })}
           </div>
           
           {totalPages > 1 && (
@@ -243,30 +250,33 @@ const Index = () => {
         <section>
           <h2 className="text-2xl font-bold text-white mb-6">Popular This Week</h2>
           <div className="space-y-4">
-            {popularNovels.map((novel) => (
-              <Link key={novel.id} to={`/novel/${novel.id}`}>
-                <Card className="bg-gray-800 border-gray-700 hover:bg-gray-700 transition-colors">
-                  <CardContent className="p-3">
-                    <div className="flex space-x-3">
-                      {novel.cover_image_url && (
-                        <img
-                          src={novel.cover_image_url}
-                          alt={`Cover of ${novel.title}`}
-                          className="w-16 h-20 object-cover rounded"
-                        />
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-gray-100 text-sm truncate">{novel.title}</h4>
-                        <p className="text-gray-400 text-xs">By {novel.author}</p>
-                        <p className="text-gray-300 text-xs mt-1 line-clamp-3">
-                          {novel.synopsis?.substring(0, 80)}...
-                        </p>
+            {popularNovels.map((novel) => {
+              const novelSlug = slugify(novel.title);
+              return (
+                <Link key={novel.id} to={`/novel/${novelSlug}`}>
+                  <Card className="bg-gray-800 border-gray-700 hover:bg-gray-700 transition-colors">
+                    <CardContent className="p-3">
+                      <div className="flex space-x-3">
+                        {novel.cover_image_url && (
+                          <img
+                            src={novel.cover_image_url}
+                            alt={`Cover of ${novel.title}`}
+                            className="w-16 h-20 object-cover rounded"
+                          />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium text-gray-100 text-sm truncate">{novel.title}</h4>
+                          <p className="text-gray-400 text-xs">By {novel.author}</p>
+                          <p className="text-gray-300 text-xs mt-1 line-clamp-3">
+                            {novel.synopsis?.substring(0, 80)}...
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
+                    </CardContent>
+                  </Card>
+                </Link>
+              );
+            })}
           </div>
         </section>
       </div>
