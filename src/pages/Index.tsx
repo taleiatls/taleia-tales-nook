@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +9,7 @@ import SEO from "@/components/SEO";
 import { supabase } from "@/integrations/supabase/client";
 import HomeBannerAd from "@/components/ads/HomeBannerAd";
 import { slugify } from "@/lib/slugify";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Pagination,
   PaginationContent,
@@ -48,6 +48,7 @@ const Index = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
+  const isMobile = useIsMobile();
 
   // Function to format relative time
   const formatRelativeTime = (dateString: string) => {
@@ -250,33 +251,55 @@ const Index = () => {
                     to={`/novel/${novelSlug}`}
                     className="flex-shrink-0 w-full h-full relative block"
                   >
-                    <div className="flex h-full">
-                      {novel.cover_image_url && (
-                        <div className="w-1/3 h-full flex items-center justify-center">
+                    {isMobile ? (
+                      // Mobile layout: Image with text overlay
+                      <div className="relative h-full">
+                        {novel.cover_image_url && (
                           <img
                             src={novel.cover_image_url}
                             alt={`Cover of ${novel.title}`}
-                            className="object-cover rounded-lg shadow-lg"
-                            style={{ width: '864px', height: '480px', maxWidth: '100%', maxHeight: '100%' }}
+                            className="w-full h-full object-cover"
                             onError={(e) => {
                               const target = e.target as HTMLImageElement;
                               target.style.display = 'none';
                             }}
-                            onLoad={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              target.style.display = 'block';
-                            }}
                           />
+                        )}
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6">
+                          <h3 className="text-2xl font-bold text-white mb-2">{novel.title}</h3>
+                          <p className="text-gray-300">By {novel.author}</p>
                         </div>
-                      )}
-                      <div className="flex-1 p-8 flex flex-col justify-center">
-                        <h3 className="text-3xl font-bold text-white mb-2">{novel.title}</h3>
-                        <p className="text-gray-300 mb-4">By {novel.author}</p>
-                        <p className="text-gray-400 text-lg leading-relaxed">
-                          {novel.synopsis?.substring(0, 200)}...
-                        </p>
                       </div>
-                    </div>
+                    ) : (
+                      // Desktop layout: Side by side
+                      <div className="flex h-full">
+                        {novel.cover_image_url && (
+                          <div className="w-1/3 h-full flex items-center justify-center">
+                            <img
+                              src={novel.cover_image_url}
+                              alt={`Cover of ${novel.title}`}
+                              className="object-cover rounded-lg shadow-lg"
+                              style={{ width: '864px', height: '480px', maxWidth: '100%', maxHeight: '100%' }}
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                              }}
+                              onLoad={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'block';
+                              }}
+                            />
+                          </div>
+                        )}
+                        <div className="flex-1 p-8 flex flex-col justify-center">
+                          <h3 className="text-3xl font-bold text-white mb-2">{novel.title}</h3>
+                          <p className="text-gray-300 mb-4">By {novel.author}</p>
+                          <p className="text-gray-400 text-lg leading-relaxed">
+                            {novel.synopsis?.substring(0, 200)}...
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </Link>
                 );
               })}
@@ -325,12 +348,12 @@ const Index = () => {
             {paginatedNovels.map((novel) => {
               const novelSlug = slugify(novel.title);
               return (
-                <Link key={novel.id} to={`/novel/${novelSlug}`}>
-                  <Card className="bg-gray-800 border-gray-700 hover:bg-gray-700 transition-colors">
-                    <CardContent className="p-4">
-                      <div className="flex space-x-4">
-                        {/* Novel Image */}
-                        <div className="flex-shrink-0">
+                <Card key={novel.id} className="bg-gray-800 border-gray-700 hover:bg-gray-700 transition-colors">
+                  <CardContent className="p-4">
+                    <div className="flex space-x-4">
+                      {/* Novel Image */}
+                      <div className="flex-shrink-0">
+                        <Link to={`/novel/${novelSlug}`}>
                           {novel.cover_image_url ? (
                             <img
                               src={novel.cover_image_url}
@@ -342,35 +365,44 @@ const Index = () => {
                               <BookOpen className="h-8 w-8 text-gray-400" />
                             </div>
                           )}
-                        </div>
+                        </Link>
+                      </div>
+                      
+                      {/* Novel Info and Chapters */}
+                      <div className="flex-1 min-w-0">
+                        <Link to={`/novel/${novelSlug}`}>
+                          <h3 className="text-lg font-semibold text-gray-100 mb-3 hover:text-blue-400 transition-colors">
+                            {novel.title}
+                          </h3>
+                        </Link>
                         
-                        {/* Novel Info and Chapters */}
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-lg font-semibold text-gray-100 mb-1">{novel.title}</h3>
-                          <p className="text-gray-400 text-sm mb-3">By {novel.author}</p>
-                          
-                          {/* Latest Chapters */}
-                          <div className="space-y-1">
-                            {novel.latest_chapters.length > 0 ? (
-                              novel.latest_chapters.map((chapter) => (
-                                <div key={chapter.id} className="flex justify-between items-center text-sm">
-                                  <span className="text-gray-300 truncate mr-2">
+                        {/* Latest Chapters */}
+                        <div className="space-y-2">
+                          {novel.latest_chapters.length > 0 ? (
+                            novel.latest_chapters.map((chapter) => (
+                              <Link 
+                                key={chapter.id} 
+                                to={`/novel/${novelSlug}/chapter/${chapter.chapter_number}`}
+                                className="block hover:bg-gray-600 rounded p-1 transition-colors"
+                              >
+                                <div className="flex justify-between items-center text-sm">
+                                  <span className="text-gray-300 truncate mr-2 hover:text-blue-400 transition-colors">
                                     Chapter {chapter.chapter_number}: {chapter.title}
                                   </span>
                                   <span className="text-gray-500 text-xs whitespace-nowrap">
                                     {formatRelativeTime(chapter.created_at)}
                                   </span>
                                 </div>
-                              ))
-                            ) : (
-                              <div className="text-gray-500 text-sm">No chapters available</div>
-                            )}
-                          </div>
+                              </Link>
+                            ))
+                          ) : (
+                            <div className="text-gray-500 text-sm">No chapters available</div>
+                          )}
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
-                </Link>
+                    </div>
+                  </CardContent>
+                </Card>
               );
             })}
           </div>
