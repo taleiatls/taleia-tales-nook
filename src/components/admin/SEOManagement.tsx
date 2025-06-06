@@ -3,10 +3,13 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/sonner";
-import { FileText, Search, ExternalLink, Copy } from "lucide-react";
+import { FileText, Search, ExternalLink, Copy, Download, RefreshCw } from "lucide-react";
+import { getSitemapContent, downloadSitemap } from "@/utils/sitemapGenerator";
 
 const SEOManagement = () => {
   const [showFullContent, setShowFullContent] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatedSitemap, setGeneratedSitemap] = useState<string>("");
 
   const sitemapContent = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -37,6 +40,46 @@ const SEOManagement = () => {
     } catch (error) {
       console.error("Error copying sitemap:", error);
       toast.error("Failed to copy sitemap content");
+    }
+  };
+
+  const handleGenerateSitemap = async () => {
+    setIsGenerating(true);
+    try {
+      console.log("Generating new sitemap...");
+      const newSitemapContent = await getSitemapContent();
+      setGeneratedSitemap(newSitemapContent);
+      toast.success("Sitemap generated successfully!");
+    } catch (error) {
+      console.error("Error generating sitemap:", error);
+      toast.error("Failed to generate sitemap");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleDownloadSitemap = async () => {
+    try {
+      await downloadSitemap();
+      toast.success("Sitemap downloaded successfully!");
+    } catch (error) {
+      console.error("Error downloading sitemap:", error);
+      toast.error("Failed to download sitemap");
+    }
+  };
+
+  const handleCopyGeneratedSitemap = async () => {
+    if (!generatedSitemap) {
+      toast.error("No generated sitemap to copy");
+      return;
+    }
+    
+    try {
+      await navigator.clipboard.writeText(generatedSitemap);
+      toast.success("Generated sitemap copied to clipboard!");
+    } catch (error) {
+      console.error("Error copying generated sitemap:", error);
+      toast.error("Failed to copy generated sitemap");
     }
   };
 
@@ -93,7 +136,7 @@ Sitemap: https://taleiatls.com/sitemap.xml`;
                 className="border-gray-600 text-gray-300 hover:bg-gray-700"
               >
                 <Copy className="h-4 w-4 mr-2" />
-                Copy Sitemap
+                Copy Current
               </Button>
               <Button 
                 onClick={openSitemapUrl}
@@ -102,6 +145,26 @@ Sitemap: https://taleiatls.com/sitemap.xml`;
               >
                 <ExternalLink className="h-4 w-4 mr-2" />
                 View Sitemap
+              </Button>
+              <Button 
+                onClick={handleGenerateSitemap}
+                disabled={isGenerating}
+                className="bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+              >
+                {isGenerating ? (
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                )}
+                Generate New
+              </Button>
+              <Button 
+                onClick={handleDownloadSitemap}
+                variant="outline"
+                className="border-gray-600 text-gray-300 hover:bg-gray-700"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download
               </Button>
             </div>
 
@@ -116,7 +179,7 @@ Sitemap: https://taleiatls.com/sitemap.xml`;
             
             <div className="mt-4">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-sm text-gray-400">Sitemap Content:</p>
+                <p className="text-sm text-gray-400">Current Sitemap Content:</p>
                 <Button
                   onClick={() => setShowFullContent(!showFullContent)}
                   variant="outline"
@@ -130,6 +193,29 @@ Sitemap: https://taleiatls.com/sitemap.xml`;
                 {showFullContent ? sitemapContent : sitemapContent.substring(0, 500) + (sitemapContent.length > 500 ? "..." : "")}
               </pre>
             </div>
+
+            {generatedSitemap && (
+              <div className="mt-4 border-t border-gray-700 pt-4">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm text-gray-400">Generated Sitemap (Live Data):</p>
+                  <Button
+                    onClick={handleCopyGeneratedSitemap}
+                    variant="outline"
+                    size="sm"
+                    className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                  >
+                    <Copy className="h-4 w-4 mr-1" />
+                    Copy
+                  </Button>
+                </div>
+                <pre className="bg-gray-900 p-3 rounded text-xs text-gray-300 overflow-x-auto max-h-60 overflow-y-auto">
+                  {generatedSitemap}
+                </pre>
+                <p className="text-xs text-yellow-400 mt-2">
+                  This sitemap includes all current novels from your database. Copy this content and replace your static sitemap.xml file.
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -166,11 +252,12 @@ Sitemap: https://taleiatls.com/sitemap.xml`;
         </CardHeader>
         <CardContent>
           <ul className="space-y-2 text-gray-300 text-sm">
-            <li>• The sitemap is now a static XML file that should work correctly</li>
-            <li>• Access it at: https://taleiatls.com/sitemap.xml</li>
+            <li>• Use "Generate New" to create a sitemap based on current novels in your database</li>
+            <li>• The generated sitemap will include all visible novels and their URLs</li>
+            <li>• Access the current static sitemap at: https://taleiatls.com/sitemap.xml</li>
             <li>• Submit the sitemap URL to Google Search Console for better indexing</li>
-            <li>• The sitemap includes your main pages and novel pages</li>
-            <li>• Update the sitemap manually when adding new content</li>
+            <li>• Copy the generated sitemap content and replace your static sitemap.xml file</li>
+            <li>• Re-generate the sitemap whenever you add new novels</li>
           </ul>
         </CardContent>
       </Card>
