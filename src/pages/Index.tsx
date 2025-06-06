@@ -94,74 +94,41 @@ const Index = () => {
         throw featuredError;
       }
 
-      // Fetch recently updated novels with their latest 3 chapters
-      const { data: recentlyUpdatedData, error: recentlyUpdatedError } = await supabase
+      // Fetch recently updated novels first
+      const { data: novelsData, error: novelsError } = await supabase
         .from('novels')
-        .select(`
-          *,
-          chapters!inner(
-            id,
-            title,
-            chapter_number,
-            created_at
-          )
-        `)
+        .select('*')
         .eq('is_hidden', false)
         .order('updated_at', { ascending: false })
         .limit(15);
 
-      if (recentlyUpdatedError) {
-        console.error("Error fetching recently updated novels:", recentlyUpdatedError);
-        // Fall back to basic novel fetch if the join fails
-        const { data: fallbackData, error: fallbackError } = await supabase
-          .from('novels')
-          .select('*')
-          .eq('is_hidden', false)
-          .order('updated_at', { ascending: false })
-          .limit(15);
-        
-        if (fallbackError) throw fallbackError;
-        setRecentlyUpdated((fallbackData || []).map(novel => ({ ...novel, latest_chapters: [] })));
-      } else {
-        // Process the data to get unique novels with their latest 3 chapters
-        const novelsMap = new Map<string, NovelWithChapters>();
-        
-        recentlyUpdatedData?.forEach((item: any) => {
-          const novelId = item.id;
-          
-          if (!novelsMap.has(novelId)) {
-            novelsMap.set(novelId, {
-              id: item.id,
-              title: item.title,
-              author: item.author,
-              synopsis: item.synopsis,
-              cover_image_url: item.cover_image_url,
-              created_at: item.created_at,
-              updated_at: item.updated_at,
-              latest_chapters: []
-            });
-          }
-          
-          const novel = novelsMap.get(novelId)!;
-          if (item.chapters && novel.latest_chapters.length < 3) {
-            novel.latest_chapters.push({
-              id: item.chapters.id,
-              title: item.chapters.title,
-              chapter_number: item.chapters.chapter_number,
-              created_at: item.chapters.created_at
-            });
-          }
-        });
-
-        // Sort chapters by creation date for each novel
-        Array.from(novelsMap.values()).forEach(novel => {
-          novel.latest_chapters.sort((a, b) => 
-            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-          );
-        });
-        
-        setRecentlyUpdated(Array.from(novelsMap.values()));
+      if (novelsError) {
+        console.error("Error fetching novels:", novelsError);
+        throw novelsError;
       }
+
+      // Then fetch latest chapters for each novel
+      const novelsWithChapters: NovelWithChapters[] = [];
+      
+      for (const novel of novelsData || []) {
+        const { data: chaptersData, error: chaptersError } = await supabase
+          .from('chapters')
+          .select('id, title, chapter_number, created_at')
+          .eq('novel_id', novel.id)
+          .eq('is_hidden', false)
+          .order('created_at', { ascending: false })
+          .limit(3);
+
+        if (chaptersError) {
+          console.error(`Error fetching chapters for novel ${novel.id}:`, chaptersError);
+          novelsWithChapters.push({ ...novel, latest_chapters: [] });
+        } else {
+          console.log(`Fetched chapters for ${novel.title}:`, chaptersData);
+          novelsWithChapters.push({ ...novel, latest_chapters: chaptersData || [] });
+        }
+      }
+
+      setRecentlyUpdated(novelsWithChapters);
 
       // Fetch popular novels
       const { data: popularData, error: popularError } = await supabase
@@ -177,7 +144,7 @@ const Index = () => {
       }
 
       console.log("Fetched featured novels:", featuredData);
-      console.log("Fetched recently updated novels:", recentlyUpdatedData);
+      console.log("Fetched recently updated novels with chapters:", novelsWithChapters);
       console.log("Fetched popular novels:", popularData);
       
       setFeaturedNovels(featuredData || []);
@@ -378,7 +345,7 @@ const Index = () => {
                         
                         {/* Latest Chapters */}
                         <div className="space-y-2">
-                          {novel.latest_chapters.length > 0 ? (
+                          {novel.latest_chapters && novel.latest_chapters.length > 0 ? (
                             novel.latest_chapters.map((chapter) => (
                               <Link 
                                 key={chapter.id} 
