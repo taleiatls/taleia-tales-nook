@@ -16,7 +16,6 @@ import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import Admin from "./pages/Admin";
-import Sitemap from "./pages/Sitemap";
 
 const queryClient = new QueryClient();
 
@@ -38,7 +37,6 @@ const App = () => (
               <Route path="/settings" element={<Settings />} />
               <Route path="/payment-success" element={<PaymentSuccess />} />
               <Route path="/admin" element={<Admin />} />
-              <Route path="/sitemap.xml" element={<Sitemap />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
