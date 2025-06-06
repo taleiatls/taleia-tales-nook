@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,9 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Plus, Edit, Trash2, Eye, EyeOff } from "lucide-react";
+import ConfirmDialog from "./ConfirmDialog";
 
 interface Chapter {
   id: string;
@@ -36,6 +37,17 @@ const ChapterManagement = () => {
   const [editingChapter, setEditingChapter] = useState<Chapter | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedNovelFilter, setSelectedNovelFilter] = useState<string>("all");
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    onConfirm: () => {}
+  });
   const [formData, setFormData] = useState({
     title: "",
     chapter_number: "",
@@ -90,7 +102,6 @@ const ChapterManagement = () => {
       const { data, error } = await supabase
         .from('novels')
         .select('id, title')
-        .eq('is_hidden', false)
         .order('title');
 
       if (error) throw error;
@@ -158,49 +169,62 @@ const ChapterManagement = () => {
     setIsDialogOpen(true);
   };
 
-  const handleDelete = async (chapterId: string) => {
-    if (!confirm("Are you sure you want to delete this chapter?")) return;
+  const handleDelete = async (chapter: Chapter) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: "Delete Chapter",
+      message: `Are you sure you want to delete "${chapter.title}"? This action cannot be undone.`,
+      onConfirm: async () => {
+        try {
+          console.log("Deleting chapter:", chapter.id);
+          const { data, error } = await supabase
+            .from('chapters')
+            .delete()
+            .eq('id', chapter.id)
+            .select('*');
 
-    try {
-      console.log("Deleting chapter:", chapterId);
-      const { data, error } = await supabase
-        .from('chapters')
-        .delete()
-        .eq('id', chapterId)
-        .select('*');
-
-      if (error) {
-        console.error("Error deleting chapter:", error);
-        throw error;
+          if (error) {
+            console.error("Error deleting chapter:", error);
+            throw error;
+          }
+          console.log("Chapter deleted successfully:", data);
+          await fetchChapters();
+        } catch (error) {
+          console.error("Error deleting chapter:", error);
+        }
       }
-      console.log("Chapter deleted successfully:", data);
-      await fetchChapters();
-    } catch (error) {
-      console.error("Error deleting chapter:", error);
-    }
+    });
   };
 
   const toggleVisibility = async (chapter: Chapter) => {
-    try {
-      console.log("Toggling chapter visibility:", chapter.id, "from", chapter.is_hidden, "to", !chapter.is_hidden);
-      const { data, error } = await supabase
-        .from('chapters')
-        .update({ 
-          is_hidden: !chapter.is_hidden,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', chapter.id)
-        .select('*');
+    const action = chapter.is_hidden ? "show" : "hide";
+    setConfirmDialog({
+      isOpen: true,
+      title: `${action === "show" ? "Show" : "Hide"} Chapter`,
+      message: `Are you sure you want to ${action} "${chapter.title}"?`,
+      onConfirm: async () => {
+        try {
+          console.log("Toggling chapter visibility:", chapter.id, "from", chapter.is_hidden, "to", !chapter.is_hidden);
+          const { data, error } = await supabase
+            .from('chapters')
+            .update({ 
+              is_hidden: !chapter.is_hidden,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', chapter.id)
+            .select('*');
 
-      if (error) {
-        console.error("Error toggling visibility:", error);
-        throw error;
+          if (error) {
+            console.error("Error toggling visibility:", error);
+            throw error;
+          }
+          console.log("Chapter visibility toggled successfully:", data);
+          await fetchChapters();
+        } catch (error) {
+          console.error("Error toggling visibility:", error);
+        }
       }
-      console.log("Chapter visibility toggled successfully:", data);
-      await fetchChapters();
-    } catch (error) {
-      console.error("Error toggling visibility:", error);
-    }
+    });
   };
 
   const resetForm = () => {
@@ -373,7 +397,7 @@ const ChapterManagement = () => {
                     <Button size="sm" variant="outline" onClick={() => toggleVisibility(chapter)}>
                       {chapter.is_hidden ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                     </Button>
-                    <Button size="sm" variant="destructive" onClick={() => handleDelete(chapter.id)}>
+                    <Button size="sm" variant="destructive" onClick={() => handleDelete(chapter)}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
@@ -383,6 +407,17 @@ const ChapterManagement = () => {
           </TableBody>
         </Table>
       </div>
+
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
+        onConfirm={confirmDialog.onConfirm}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        confirmText="Confirm"
+        cancelText="Cancel"
+        variant="destructive"
+      />
     </div>
   );
 };

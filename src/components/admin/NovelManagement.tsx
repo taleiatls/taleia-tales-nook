@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { Plus, Edit, Trash2, Eye, EyeOff } from "lucide-react";
+import ConfirmDialog from "./ConfirmDialog";
 
 interface Novel {
   id: string;
@@ -27,6 +28,17 @@ const NovelManagement = () => {
   const [loading, setLoading] = useState(true);
   const [editingNovel, setEditingNovel] = useState<Novel | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    onConfirm: () => {}
+  });
   const [formData, setFormData] = useState({
     title: "",
     author: "",
@@ -110,74 +122,79 @@ const NovelManagement = () => {
     setIsDialogOpen(true);
   };
 
-  const handleDelete = async (novelId: string) => {
-    if (!confirm("Are you sure you want to delete this novel? This will also delete all its chapters.")) return;
+  const handleDelete = async (novel: Novel) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: "Delete Novel",
+      message: `Are you sure you want to delete "${novel.title}"? This will also delete all its chapters and cannot be undone.`,
+      onConfirm: async () => {
+        try {
+          console.log("Deleting novel:", novel.id);
+          
+          // First delete all chapters of this novel
+          const { error: chaptersError } = await supabase
+            .from('chapters')
+            .delete()
+            .eq('novel_id', novel.id);
 
-    try {
-      console.log("Deleting novel:", novelId);
-      
-      // First delete all chapters of this novel
-      const { error: chaptersError } = await supabase
-        .from('chapters')
-        .delete()
-        .eq('novel_id', novelId);
+          if (chaptersError) {
+            console.error("Error deleting chapters:", chaptersError);
+            throw chaptersError;
+          }
 
-      if (chaptersError) {
-        console.error("Error deleting chapters:", chaptersError);
-        throw chaptersError;
+          // Then delete the novel
+          const { data, error } = await supabase
+            .from('novels')
+            .delete()
+            .eq('id', novel.id)
+            .select('*');
+
+          if (error) {
+            console.error("Error deleting novel:", error);
+            throw error;
+          }
+          
+          console.log("Novel deleted successfully:", data);
+          await fetchNovels();
+        } catch (error) {
+          console.error("Error deleting novel:", error);
+        }
       }
-
-      // Then delete the novel
-      const { data, error } = await supabase
-        .from('novels')
-        .delete()
-        .eq('id', novelId)
-        .select('*');
-
-      if (error) {
-        console.error("Error deleting novel:", error);
-        throw error;
-      }
-      
-      console.log("Novel deleted successfully:", data);
-      await fetchNovels();
-    } catch (error) {
-      console.error("Error deleting novel:", error);
-    }
+    });
   };
 
   const toggleVisibility = async (novel: Novel) => {
-    try {
-      console.log("Toggling visibility for novel:", novel.id, "from", novel.is_hidden, "to", !novel.is_hidden);
-      
-      const { data, error } = await supabase
-        .from('novels')
-        .update({ 
-          is_hidden: !novel.is_hidden,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', novel.id)
-        .select('*');
+    const action = novel.is_hidden ? "show" : "hide";
+    setConfirmDialog({
+      isOpen: true,
+      title: `${action === "show" ? "Show" : "Hide"} Novel`,
+      message: `Are you sure you want to ${action} "${novel.title}"?`,
+      onConfirm: async () => {
+        try {
+          console.log("Toggling visibility for novel:", novel.id, "from", novel.is_hidden, "to", !novel.is_hidden);
+          
+          const { data, error } = await supabase
+            .from('novels')
+            .update({ 
+              is_hidden: !novel.is_hidden,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', novel.id)
+            .select('*');
 
-      if (error) {
-        console.error("Supabase error:", error);
-        throw error;
+          if (error) {
+            console.error("Supabase error:", error);
+            throw error;
+          }
+
+          console.log("Update successful, updated data:", data);
+          await fetchNovels();
+          
+        } catch (error) {
+          console.error("Error toggling visibility:", error);
+        }
       }
-
-      console.log("Update successful, updated data:", data);
-      
-      // Update the local state immediately
-      setNovels(prevNovels => 
-        prevNovels.map(n => 
-          n.id === novel.id 
-            ? { ...n, is_hidden: !novel.is_hidden }
-            : n
-        )
-      );
-      
-    } catch (error) {
-      console.error("Error toggling visibility:", error);
-    }
+    });
   };
 
   const resetForm = () => {
@@ -285,7 +302,7 @@ const NovelManagement = () => {
                     <Button size="sm" variant="outline" onClick={() => toggleVisibility(novel)}>
                       {novel.is_hidden ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                     </Button>
-                    <Button size="sm" variant="destructive" onClick={() => handleDelete(novel.id)}>
+                    <Button size="sm" variant="destructive" onClick={() => handleDelete(novel)}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
@@ -295,6 +312,17 @@ const NovelManagement = () => {
           </TableBody>
         </Table>
       </div>
+
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
+        onConfirm={confirmDialog.onConfirm}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        confirmText="Confirm"
+        cancelText="Cancel"
+        variant="destructive"
+      />
     </div>
   );
 };
