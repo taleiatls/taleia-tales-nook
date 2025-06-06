@@ -7,8 +7,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Edit, Trash2, Eye, EyeOff } from "lucide-react";
+import { Plus, Edit, Trash2, Eye, EyeOff, Upload, X } from "lucide-react";
 import ConfirmDialog from "./ConfirmDialog";
 
 interface Novel {
@@ -20,14 +21,31 @@ interface Novel {
   language: string | null;
   total_chapters: number | null;
   is_hidden: boolean;
+  cover_image_url: string | null;
   created_at: string;
+}
+
+interface Tag {
+  id: string;
+  name: string;
+}
+
+interface NovelTag {
+  novel_id: string;
+  tag_id: string;
+  tag: Tag;
 }
 
 const NovelManagement = () => {
   const [novels, setNovels] = useState<Novel[]>([]);
+  const [tags, setTags] = useState<Tag[]>([]);
+  const [novelTags, setNovelTags] = useState<{ [novelId: string]: Tag[] }>({});
   const [loading, setLoading] = useState(true);
   const [editingNovel, setEditingNovel] = useState<Novel | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
+  const [coverImageUrl, setCoverImageUrl] = useState<string>("");
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
     title: string;
@@ -49,6 +67,8 @@ const NovelManagement = () => {
 
   useEffect(() => {
     fetchNovels();
+    fetchTags();
+    fetchNovelTags();
   }, []);
 
   const fetchNovels = async () => {
@@ -71,15 +91,105 @@ const NovelManagement = () => {
     }
   };
 
+  const fetchTags = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('tags')
+        .select('*')
+        .order('name');
+
+      if (error) {
+        console.error("Error fetching tags:", error);
+        throw error;
+      }
+      setTags(data || []);
+    } catch (error) {
+      console.error("Error fetching tags:", error);
+    }
+  };
+
+  const fetchNovelTags = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('novel_tags')
+        .select(`
+          novel_id,
+          tag_id,
+          tag:tags(id, name)
+        `);
+
+      if (error) {
+        console.error("Error fetching novel tags:", error);
+        throw error;
+      }
+
+      // Group tags by novel_id
+      const tagsByNovel: { [novelId: string]: Tag[] } = {};
+      data?.forEach((item: any) => {
+        if (!tagsByNovel[item.novel_id]) {
+          tagsByNovel[item.novel_id] = [];
+        }
+        tagsByNovel[item.novel_id].push(item.tag);
+      });
+      
+      setNovelTags(tagsByNovel);
+    } catch (error) {
+      console.error("Error fetching novel tags:", error);
+    }
+  };
+
+  const uploadCoverImage = async (file: File): Promise<string | null> => {
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}.${fileExt}`;
+      const filePath = `covers/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('novel-covers')
+        .upload(filePath, file);
+
+      if (uploadError) {
+        console.error("Error uploading cover image:", uploadError);
+        return null;
+      }
+
+      const { data } = supabase.storage
+        .from('novel-covers')
+        .getPublicUrl(filePath);
+
+      return data.publicUrl;
+    } catch (error) {
+      console.error("Error in uploadCoverImage:", error);
+      return null;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     try {
+      let finalCoverImageUrl = coverImageUrl;
+
+      // Upload cover image if a file is selected
+      if (coverImageFile) {
+        const uploadedUrl = await uploadCoverImage(coverImageFile);
+        if (uploadedUrl) {
+          finalCoverImageUrl = uploadedUrl;
+        }
+      }
+
+      const novelData = {
+        ...formData,
+        cover_image_url: finalCoverImageUrl || null
+      };
+
+      let novelId: string;
+
       if (editingNovel) {
-        console.log("Updating novel:", editingNovel.id, formData);
+        console.log("Updating novel:", editingNovel.id, novelData);
         const { data, error } = await supabase
           .from('novels')
-          .update(formData)
+          .update(novelData)
           .eq('id', editingNovel.id)
           .select('*');
 
@@ -88,11 +198,12 @@ const NovelManagement = () => {
           throw error;
         }
         console.log("Novel updated successfully:", data);
+        novelId = editingNovel.id;
       } else {
-        console.log("Creating novel:", formData);
+        console.log("Creating novel:", novelData);
         const { data, error } = await supabase
           .from('novels')
-          .insert([formData])
+          .insert([novelData])
           .select('*');
 
         if (error) {
@@ -100,13 +211,47 @@ const NovelManagement = () => {
           throw error;
         }
         console.log("Novel created successfully:", data);
+        novelId = data[0].id;
       }
+
+      // Update tags
+      await updateNovelTags(novelId, selectedTags);
 
       setIsDialogOpen(false);
       resetForm();
       await fetchNovels();
+      await fetchNovelTags();
     } catch (error) {
       console.error("Error saving novel:", error);
+    }
+  };
+
+  const updateNovelTags = async (novelId: string, tagIds: string[]) => {
+    try {
+      // Delete existing tags for this novel
+      await supabase
+        .from('novel_tags')
+        .delete()
+        .eq('novel_id', novelId);
+
+      // Insert new tags
+      if (tagIds.length > 0) {
+        const novelTagsData = tagIds.map(tagId => ({
+          novel_id: novelId,
+          tag_id: tagId
+        }));
+
+        const { error } = await supabase
+          .from('novel_tags')
+          .insert(novelTagsData);
+
+        if (error) {
+          console.error("Error updating novel tags:", error);
+          throw error;
+        }
+      }
+    } catch (error) {
+      console.error("Error in updateNovelTags:", error);
     }
   };
 
@@ -119,6 +264,13 @@ const NovelManagement = () => {
       status: novel.status || "ongoing",
       language: novel.language || "english"
     });
+    setCoverImageUrl(novel.cover_image_url || "");
+    setCoverImageFile(null);
+    
+    // Set selected tags for this novel
+    const novelTagList = novelTags[novel.id] || [];
+    setSelectedTags(novelTagList.map(tag => tag.id));
+    
     setIsDialogOpen(true);
   };
 
@@ -142,6 +294,12 @@ const NovelManagement = () => {
             throw chaptersError;
           }
 
+          // Delete novel tags
+          await supabase
+            .from('novel_tags')
+            .delete()
+            .eq('novel_id', novel.id);
+
           // Then delete the novel
           const { data, error } = await supabase
             .from('novels')
@@ -156,6 +314,7 @@ const NovelManagement = () => {
           
           console.log("Novel deleted successfully:", data);
           await fetchNovels();
+          await fetchNovelTags();
         } catch (error) {
           console.error("Error deleting novel:", error);
         }
@@ -205,7 +364,33 @@ const NovelManagement = () => {
       status: "ongoing",
       language: "english"
     });
+    setSelectedTags([]);
+    setCoverImageUrl("");
+    setCoverImageFile(null);
     setEditingNovel(null);
+  };
+
+  const handleTagToggle = (tagId: string) => {
+    setSelectedTags(prev => 
+      prev.includes(tagId) 
+        ? prev.filter(id => id !== tagId)
+        : [...prev, tagId]
+    );
+  };
+
+  const handleCoverImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setCoverImageFile(file);
+      // Create preview URL
+      const previewUrl = URL.createObjectURL(file);
+      setCoverImageUrl(previewUrl);
+    }
+  };
+
+  const removeCoverImage = () => {
+    setCoverImageFile(null);
+    setCoverImageUrl("");
   };
 
   if (loading) {
@@ -223,7 +408,7 @@ const NovelManagement = () => {
               Add Novel
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-gray-800 border-gray-700 text-gray-200">
+          <DialogContent className="bg-gray-800 border-gray-700 text-gray-200 max-w-2xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingNovel ? 'Edit Novel' : 'Add New Novel'}</DialogTitle>
             </DialogHeader>
@@ -257,6 +442,58 @@ const NovelManagement = () => {
                   className="bg-gray-700 border-gray-600"
                 />
               </div>
+
+              {/* Cover Image Upload */}
+              <div>
+                <Label htmlFor="cover-image">Cover Image</Label>
+                <div className="space-y-2">
+                  <Input
+                    id="cover-image"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleCoverImageChange}
+                    className="bg-gray-700 border-gray-600"
+                  />
+                  {coverImageUrl && (
+                    <div className="relative inline-block">
+                      <img 
+                        src={coverImageUrl} 
+                        alt="Cover preview" 
+                        className="w-32 h-48 object-cover rounded border border-gray-600"
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="destructive"
+                        className="absolute top-1 right-1"
+                        onClick={removeCoverImage}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Tags Selection */}
+              <div>
+                <Label>Tags</Label>
+                <div className="grid grid-cols-2 gap-2 mt-2 max-h-32 overflow-y-auto p-2 border border-gray-600 rounded bg-gray-700">
+                  {tags.map((tag) => (
+                    <div key={tag.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`tag-${tag.id}`}
+                        checked={selectedTags.includes(tag.id)}
+                        onCheckedChange={() => handleTagToggle(tag.id)}
+                      />
+                      <Label htmlFor={`tag-${tag.id}`} className="text-sm">
+                        {tag.name}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               <div className="flex justify-end space-x-2">
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                   Cancel
@@ -274,9 +511,11 @@ const NovelManagement = () => {
         <Table>
           <TableHeader>
             <TableRow className="border-gray-700">
+              <TableHead className="text-gray-300">Cover</TableHead>
               <TableHead className="text-gray-300">Title</TableHead>
               <TableHead className="text-gray-300">Author</TableHead>
               <TableHead className="text-gray-300">Status</TableHead>
+              <TableHead className="text-gray-300">Tags</TableHead>
               <TableHead className="text-gray-300">Visibility</TableHead>
               <TableHead className="text-gray-300">Actions</TableHead>
             </TableRow>
@@ -284,10 +523,32 @@ const NovelManagement = () => {
           <TableBody>
             {novels.map((novel) => (
               <TableRow key={novel.id} className="border-gray-700">
+                <TableCell>
+                  {novel.cover_image_url ? (
+                    <img 
+                      src={novel.cover_image_url} 
+                      alt={`${novel.title} cover`}
+                      className="w-12 h-16 object-cover rounded"
+                    />
+                  ) : (
+                    <div className="w-12 h-16 bg-gray-600 rounded flex items-center justify-center">
+                      <span className="text-xs text-gray-400">No cover</span>
+                    </div>
+                  )}
+                </TableCell>
                 <TableCell className="text-gray-200">{novel.title}</TableCell>
                 <TableCell className="text-gray-200">{novel.author}</TableCell>
                 <TableCell>
                   <Badge variant="secondary">{novel.status}</Badge>
+                </TableCell>
+                <TableCell>
+                  <div className="flex flex-wrap gap-1">
+                    {(novelTags[novel.id] || []).map((tag) => (
+                      <Badge key={tag.id} variant="outline" className="text-xs">
+                        {tag.name}
+                      </Badge>
+                    ))}
+                  </div>
                 </TableCell>
                 <TableCell>
                   <Badge variant={novel.is_hidden ? "destructive" : "default"}>
