@@ -7,7 +7,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Plus, Edit, Trash2, Eye, EyeOff } from "lucide-react";
 
@@ -51,7 +50,6 @@ const NovelManagement = () => {
       setNovels(data || []);
     } catch (error) {
       console.error("Error fetching novels:", error);
-      toast.error("Failed to fetch novels");
     } finally {
       setLoading(false);
     }
@@ -68,14 +66,12 @@ const NovelManagement = () => {
           .eq('id', editingNovel.id);
 
         if (error) throw error;
-        toast.success("Novel updated successfully");
       } else {
         const { error } = await supabase
           .from('novels')
           .insert([formData]);
 
         if (error) throw error;
-        toast.success("Novel created successfully");
       }
 
       setIsDialogOpen(false);
@@ -83,7 +79,6 @@ const NovelManagement = () => {
       fetchNovels();
     } catch (error) {
       console.error("Error saving novel:", error);
-      toast.error("Failed to save novel");
     }
   };
 
@@ -109,27 +104,40 @@ const NovelManagement = () => {
         .eq('id', novelId);
 
       if (error) throw error;
-      toast.success("Novel deleted successfully");
       fetchNovels();
     } catch (error) {
       console.error("Error deleting novel:", error);
-      toast.error("Failed to delete novel");
     }
   };
 
   const toggleVisibility = async (novel: Novel) => {
     try {
-      const { error } = await supabase
+      console.log("Toggling visibility for novel:", novel.id, "from", novel.is_hidden, "to", !novel.is_hidden);
+      
+      const { data, error } = await supabase
         .from('novels')
         .update({ is_hidden: !novel.is_hidden })
-        .eq('id', novel.id);
+        .eq('id', novel.id)
+        .select('*');
 
-      if (error) throw error;
-      toast.success(`Novel ${!novel.is_hidden ? 'hidden' : 'shown'} successfully`);
-      fetchNovels();
+      if (error) {
+        console.error("Supabase error:", error);
+        throw error;
+      }
+
+      console.log("Update successful, updated data:", data);
+      
+      // Update the local state immediately
+      setNovels(prevNovels => 
+        prevNovels.map(n => 
+          n.id === novel.id 
+            ? { ...n, is_hidden: !novel.is_hidden }
+            : n
+        )
+      );
+      
     } catch (error) {
       console.error("Error toggling visibility:", error);
-      toast.error("Failed to toggle visibility");
     }
   };
 
