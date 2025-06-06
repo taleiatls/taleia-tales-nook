@@ -3,11 +3,12 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/sonner";
-import { Download, FileText, Search, ExternalLink } from "lucide-react";
+import { Download, FileText, Search, ExternalLink, RefreshCw } from "lucide-react";
 import { generateSitemap, downloadSitemap } from "@/utils/sitemapGenerator";
 
 const SEOManagement = () => {
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
   const [sitemapPreview, setSitemapPreview] = useState<string>("");
 
   const handleGenerateSitemap = async () => {
@@ -21,6 +22,33 @@ const SEOManagement = () => {
       toast.error("Failed to generate sitemap");
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleUpdateSitemap = async () => {
+    setIsUpdating(true);
+    try {
+      const sitemapContent = await generateSitemap();
+      
+      // Create a download link to save the updated sitemap
+      const blob = new Blob([sitemapContent], { type: 'application/xml' });
+      const url = URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'sitemap.xml';
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      toast.success("Sitemap updated! Please upload the downloaded file to replace the current sitemap.xml");
+    } catch (error) {
+      console.error("Error updating sitemap:", error);
+      toast.error("Failed to update sitemap");
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -73,20 +101,28 @@ Sitemap: https://taleiatls.com/sitemap.xml`;
           <CardHeader>
             <CardTitle className="text-gray-100 flex items-center space-x-2">
               <FileText className="h-5 w-5" />
-              <span>Dynamic Sitemap</span>
+              <span>Sitemap Management</span>
             </CardTitle>
             <CardDescription className="text-gray-400">
-              Your sitemap is automatically generated at /sitemap.xml
+              Generate and update your sitemap.xml file
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex space-x-2">
+            <div className="flex flex-wrap gap-2">
               <Button 
                 onClick={handleGenerateSitemap} 
                 disabled={isGenerating}
                 className="bg-blue-500 hover:bg-blue-600"
               >
                 {isGenerating ? "Generating..." : "Preview Sitemap"}
+              </Button>
+              <Button 
+                onClick={handleUpdateSitemap}
+                disabled={isUpdating}
+                className="bg-green-500 hover:bg-green-600"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                {isUpdating ? "Updating..." : "Update Sitemap"}
               </Button>
               <Button 
                 onClick={openSitemapUrl}
@@ -109,9 +145,12 @@ Sitemap: https://taleiatls.com/sitemap.xml`;
             </div>
 
             <div className="text-sm text-gray-400 bg-gray-900 p-3 rounded">
-              <p><strong>Live URL:</strong> /sitemap.xml</p>
-              <p><strong>Updates:</strong> Automatically when novels are added/updated</p>
+              <p><strong>Current URL:</strong> /sitemap.xml</p>
+              <p><strong>Updates:</strong> Manual update using "Update Sitemap" button</p>
               <p><strong>Format:</strong> XML Sitemap Protocol</p>
+              <p className="mt-2 text-yellow-400">
+                <strong>Note:</strong> After clicking "Update Sitemap", upload the downloaded file to replace the current sitemap.xml
+              </p>
             </div>
             
             {sitemapPreview && (
@@ -144,7 +183,7 @@ Sitemap: https://taleiatls.com/sitemap.xml`;
             
             <div className="text-sm text-gray-400 bg-gray-900 p-3 rounded">
               <p><strong>Sitemap URL:</strong> https://taleiatls.com/sitemap.xml</p>
-              <p className="mt-2">This robots.txt allows all crawlers and points to your dynamic sitemap.</p>
+              <p className="mt-2">This robots.txt allows all crawlers and points to your sitemap.</p>
               <p className="mt-2">Place this content in your domain's robots.txt file.</p>
             </div>
           </CardContent>
@@ -154,15 +193,15 @@ Sitemap: https://taleiatls.com/sitemap.xml`;
       {/* SEO Tips */}
       <Card className="bg-gray-800 border-gray-700">
         <CardHeader>
-          <CardTitle className="text-gray-100">Dynamic Sitemap Benefits</CardTitle>
+          <CardTitle className="text-gray-100">Sitemap Management Tips</CardTitle>
         </CardHeader>
         <CardContent>
           <ul className="space-y-2 text-gray-300 text-sm">
-            <li>• Your sitemap updates automatically when new novels are published</li>
-            <li>• Search engines can access it at /sitemap.xml without manual uploads</li>
-            <li>• Submit https://taleiatls.com/sitemap.xml to Google Search Console</li>
-            <li>• No need to regenerate or re-upload the sitemap manually</li>
-            <li>• Always includes the latest content with proper last modified dates</li>
+            <li>• Use "Update Sitemap" to generate a new sitemap with all current novels</li>
+            <li>• Download and upload the new sitemap.xml to replace the current one</li>
+            <li>• Submit https://taleiatls.com/sitemap.xml to Google Search Console after updates</li>
+            <li>• Update the sitemap whenever you add new novels or make significant changes</li>
+            <li>• The sitemap includes proper last modified dates for better SEO</li>
           </ul>
         </CardContent>
       </Card>
