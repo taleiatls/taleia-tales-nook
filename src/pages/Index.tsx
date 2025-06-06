@@ -135,11 +135,11 @@ const Index = () => {
                   >
                     <div className="flex h-full">
                       {novel.cover_image_url && (
-                        <div className="w-1/3 h-full">
+                        <div className="w-1/3 h-full overflow-hidden">
                           <img
                             src={novel.cover_image_url}
                             alt={`Cover of ${novel.title}`}
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-contain bg-gray-900"
                           />
                         </div>
                       )}
