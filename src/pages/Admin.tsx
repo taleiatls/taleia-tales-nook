@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Shield, Users, BookOpen, FileText } from "lucide-react";
+import { Shield, Users, BookOpen, FileText, Search } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -10,6 +10,7 @@ import { useNavigate } from "react-router-dom";
 import NovelManagement from "@/components/admin/NovelManagement";
 import ChapterManagement from "@/components/admin/ChapterManagement";
 import UserManagement from "@/components/admin/UserManagement";
+import SEOManagement from "@/components/admin/SEOManagement";
 
 const Admin = () => {
   const { user } = useAuth();
@@ -92,11 +93,11 @@ const Admin = () => {
             <Shield className="mr-3 h-8 w-8 text-blue-400" />
             Admin Dashboard
           </h1>
-          <p className="text-gray-400">Manage novels, chapters, and users</p>
+          <p className="text-gray-400">Manage novels, chapters, users, and SEO</p>
         </div>
 
         <Tabs defaultValue="novels" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 bg-gray-800 border-gray-700">
+          <TabsList className="grid w-full grid-cols-4 bg-gray-800 border-gray-700">
             <TabsTrigger value="novels" className="flex items-center gap-2">
               <BookOpen className="h-4 w-4" />
               Novels
@@ -108,6 +109,10 @@ const Admin = () => {
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               Users
+            </TabsTrigger>
+            <TabsTrigger value="seo" className="flex items-center gap-2">
+              <Search className="h-4 w-4" />
+              SEO
             </TabsTrigger>
           </TabsList>
 
@@ -140,6 +145,17 @@ const Admin = () => {
               </CardHeader>
               <CardContent>
                 <UserManagement />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="seo">
+            <Card className="bg-gray-800 border-gray-700">
+              <CardHeader>
+                <CardTitle className="text-gray-100">SEO Management</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <SEOManagement />
               </CardContent>
             </Card>
           </TabsContent>
