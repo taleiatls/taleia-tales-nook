@@ -11,6 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { Plus, Edit, Trash2, Eye, EyeOff, Upload, X } from "lucide-react";
 import ConfirmDialog from "./ConfirmDialog";
+import { toast } from "@/components/ui/sonner";
 
 interface Novel {
   id: string;
@@ -46,6 +47,7 @@ const NovelManagement = () => {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
   const [coverImageUrl, setCoverImageUrl] = useState<string>("");
+  const [uploading, setUploading] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
     title: string;
@@ -140,9 +142,12 @@ const NovelManagement = () => {
 
   const uploadCoverImage = async (file: File): Promise<string | null> => {
     try {
+      setUploading(true);
       const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}.${fileExt}`;
-      const filePath = `covers/${fileName}`;
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = fileName;
+
+      console.log("Uploading cover image:", filePath);
 
       const { error: uploadError } = await supabase.storage
         .from('novel-covers')
@@ -150,6 +155,7 @@ const NovelManagement = () => {
 
       if (uploadError) {
         console.error("Error uploading cover image:", uploadError);
+        toast.error("Failed to upload cover image");
         return null;
       }
 
@@ -157,10 +163,15 @@ const NovelManagement = () => {
         .from('novel-covers')
         .getPublicUrl(filePath);
 
+      console.log("Cover image uploaded successfully:", data.publicUrl);
+      toast.success("Cover image uploaded successfully");
       return data.publicUrl;
     } catch (error) {
       console.error("Error in uploadCoverImage:", error);
+      toast.error("Failed to upload cover image");
       return null;
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -175,6 +186,9 @@ const NovelManagement = () => {
         const uploadedUrl = await uploadCoverImage(coverImageFile);
         if (uploadedUrl) {
           finalCoverImageUrl = uploadedUrl;
+        } else {
+          // If upload failed, don't proceed
+          return;
         }
       }
 
@@ -195,9 +209,11 @@ const NovelManagement = () => {
 
         if (error) {
           console.error("Error updating novel:", error);
+          toast.error("Failed to update novel");
           throw error;
         }
         console.log("Novel updated successfully:", data);
+        toast.success("Novel updated successfully");
         novelId = editingNovel.id;
       } else {
         console.log("Creating novel:", novelData);
@@ -208,9 +224,11 @@ const NovelManagement = () => {
 
         if (error) {
           console.error("Error creating novel:", error);
+          toast.error("Failed to create novel");
           throw error;
         }
         console.log("Novel created successfully:", data);
+        toast.success("Novel created successfully");
         novelId = data[0].id;
       }
 
@@ -382,7 +400,7 @@ const NovelManagement = () => {
     const file = e.target.files?.[0];
     if (file) {
       setCoverImageFile(file);
-      // Create preview URL
+      // Create preview URL for immediate display
       const previewUrl = URL.createObjectURL(file);
       setCoverImageUrl(previewUrl);
     }
@@ -391,6 +409,10 @@ const NovelManagement = () => {
   const removeCoverImage = () => {
     setCoverImageFile(null);
     setCoverImageUrl("");
+    // Clean up blob URL if it exists
+    if (coverImageUrl && coverImageUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(coverImageUrl);
+    }
   };
 
   if (loading) {
@@ -453,7 +475,11 @@ const NovelManagement = () => {
                     accept="image/*"
                     onChange={handleCoverImageChange}
                     className="bg-gray-700 border-gray-600"
+                    disabled={uploading}
                   />
+                  {uploading && (
+                    <p className="text-sm text-blue-400">Uploading image...</p>
+                  )}
                   {coverImageUrl && (
                     <div className="relative inline-block">
                       <img 
@@ -467,6 +493,7 @@ const NovelManagement = () => {
                         variant="destructive"
                         className="absolute top-1 right-1"
                         onClick={removeCoverImage}
+                        disabled={uploading}
                       >
                         <X className="h-3 w-3" />
                       </Button>
@@ -498,8 +525,8 @@ const NovelManagement = () => {
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                   Cancel
                 </Button>
-                <Button type="submit">
-                  {editingNovel ? 'Update' : 'Create'}
+                <Button type="submit" disabled={uploading}>
+                  {uploading ? "Uploading..." : (editingNovel ? 'Update' : 'Create')}
                 </Button>
               </div>
             </form>
