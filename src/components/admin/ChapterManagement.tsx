@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -73,11 +72,14 @@ const ChapterManagement = () => {
         `)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching chapters:", error);
+        throw error;
+      }
+      console.log("Fetched chapters:", data);
       setChapters(data || []);
     } catch (error) {
       console.error("Error fetching chapters:", error);
-      toast.error("Failed to fetch chapters");
     } finally {
       setLoading(false);
     }
@@ -109,28 +111,37 @@ const ChapterManagement = () => {
       };
 
       if (editingChapter) {
-        const { error } = await supabase
+        console.log("Updating chapter:", editingChapter.id, chapterData);
+        const { data, error } = await supabase
           .from('chapters')
           .update(chapterData)
-          .eq('id', editingChapter.id);
+          .eq('id', editingChapter.id)
+          .select('*');
 
-        if (error) throw error;
-        toast.success("Chapter updated successfully");
+        if (error) {
+          console.error("Error updating chapter:", error);
+          throw error;
+        }
+        console.log("Chapter updated successfully:", data);
       } else {
-        const { error } = await supabase
+        console.log("Creating chapter:", chapterData);
+        const { data, error } = await supabase
           .from('chapters')
-          .insert([chapterData]);
+          .insert([chapterData])
+          .select('*');
 
-        if (error) throw error;
-        toast.success("Chapter created successfully");
+        if (error) {
+          console.error("Error creating chapter:", error);
+          throw error;
+        }
+        console.log("Chapter created successfully:", data);
       }
 
       setIsDialogOpen(false);
       resetForm();
-      fetchChapters();
+      await fetchChapters();
     } catch (error) {
       console.error("Error saving chapter:", error);
-      toast.error("Failed to save chapter");
     }
   };
 
@@ -151,33 +162,44 @@ const ChapterManagement = () => {
     if (!confirm("Are you sure you want to delete this chapter?")) return;
 
     try {
-      const { error } = await supabase
+      console.log("Deleting chapter:", chapterId);
+      const { data, error } = await supabase
         .from('chapters')
         .delete()
-        .eq('id', chapterId);
+        .eq('id', chapterId)
+        .select('*');
 
-      if (error) throw error;
-      toast.success("Chapter deleted successfully");
-      fetchChapters();
+      if (error) {
+        console.error("Error deleting chapter:", error);
+        throw error;
+      }
+      console.log("Chapter deleted successfully:", data);
+      await fetchChapters();
     } catch (error) {
       console.error("Error deleting chapter:", error);
-      toast.error("Failed to delete chapter");
     }
   };
 
   const toggleVisibility = async (chapter: Chapter) => {
     try {
-      const { error } = await supabase
+      console.log("Toggling chapter visibility:", chapter.id, "from", chapter.is_hidden, "to", !chapter.is_hidden);
+      const { data, error } = await supabase
         .from('chapters')
-        .update({ is_hidden: !chapter.is_hidden })
-        .eq('id', chapter.id);
+        .update({ 
+          is_hidden: !chapter.is_hidden,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', chapter.id)
+        .select('*');
 
-      if (error) throw error;
-      toast.success(`Chapter ${!chapter.is_hidden ? 'hidden' : 'shown'} successfully`);
-      fetchChapters();
+      if (error) {
+        console.error("Error toggling visibility:", error);
+        throw error;
+      }
+      console.log("Chapter visibility toggled successfully:", data);
+      await fetchChapters();
     } catch (error) {
       console.error("Error toggling visibility:", error);
-      toast.error("Failed to toggle visibility");
     }
   };
 

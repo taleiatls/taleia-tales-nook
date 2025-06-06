@@ -46,7 +46,11 @@ const NovelManagement = () => {
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching novels:", error);
+        throw error;
+      }
+      console.log("Fetched novels:", data);
       setNovels(data || []);
     } catch (error) {
       console.error("Error fetching novels:", error);
@@ -60,23 +64,35 @@ const NovelManagement = () => {
     
     try {
       if (editingNovel) {
-        const { error } = await supabase
+        console.log("Updating novel:", editingNovel.id, formData);
+        const { data, error } = await supabase
           .from('novels')
           .update(formData)
-          .eq('id', editingNovel.id);
+          .eq('id', editingNovel.id)
+          .select('*');
 
-        if (error) throw error;
+        if (error) {
+          console.error("Error updating novel:", error);
+          throw error;
+        }
+        console.log("Novel updated successfully:", data);
       } else {
-        const { error } = await supabase
+        console.log("Creating novel:", formData);
+        const { data, error } = await supabase
           .from('novels')
-          .insert([formData]);
+          .insert([formData])
+          .select('*');
 
-        if (error) throw error;
+        if (error) {
+          console.error("Error creating novel:", error);
+          throw error;
+        }
+        console.log("Novel created successfully:", data);
       }
 
       setIsDialogOpen(false);
       resetForm();
-      fetchNovels();
+      await fetchNovels();
     } catch (error) {
       console.error("Error saving novel:", error);
     }
@@ -95,16 +111,36 @@ const NovelManagement = () => {
   };
 
   const handleDelete = async (novelId: string) => {
-    if (!confirm("Are you sure you want to delete this novel?")) return;
+    if (!confirm("Are you sure you want to delete this novel? This will also delete all its chapters.")) return;
 
     try {
-      const { error } = await supabase
+      console.log("Deleting novel:", novelId);
+      
+      // First delete all chapters of this novel
+      const { error: chaptersError } = await supabase
+        .from('chapters')
+        .delete()
+        .eq('novel_id', novelId);
+
+      if (chaptersError) {
+        console.error("Error deleting chapters:", chaptersError);
+        throw chaptersError;
+      }
+
+      // Then delete the novel
+      const { data, error } = await supabase
         .from('novels')
         .delete()
-        .eq('id', novelId);
+        .eq('id', novelId)
+        .select('*');
 
-      if (error) throw error;
-      fetchNovels();
+      if (error) {
+        console.error("Error deleting novel:", error);
+        throw error;
+      }
+      
+      console.log("Novel deleted successfully:", data);
+      await fetchNovels();
     } catch (error) {
       console.error("Error deleting novel:", error);
     }
@@ -116,7 +152,10 @@ const NovelManagement = () => {
       
       const { data, error } = await supabase
         .from('novels')
-        .update({ is_hidden: !novel.is_hidden })
+        .update({ 
+          is_hidden: !novel.is_hidden,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', novel.id)
         .select('*');
 

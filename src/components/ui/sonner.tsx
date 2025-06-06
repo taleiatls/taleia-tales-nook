@@ -9,15 +9,15 @@ const Toaster = ({ ...props }: ToasterProps) => {
   return null;
 }
 
-// Disabled toast function
+// Disabled toast function - now accepts any arguments but does nothing
 export const toast = {
-  success: () => {},
-  error: () => {},
-  info: () => {},
-  warning: () => {},
-  loading: () => {},
-  promise: () => {},
-  dismiss: () => {},
+  success: (...args: any[]) => {},
+  error: (...args: any[]) => {},
+  info: (...args: any[]) => {},
+  warning: (...args: any[]) => {},
+  loading: (...args: any[]) => {},
+  promise: (...args: any[]) => {},
+  dismiss: (...args: any[]) => {},
 };
 
 export { Toaster }
