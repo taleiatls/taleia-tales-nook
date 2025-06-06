@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -113,6 +112,20 @@ const ChapterManagement = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate that a novel is selected
+    if (!formData.novel_id || formData.novel_id.trim() === "") {
+      console.error("No novel selected");
+      alert("Please select a novel before creating a chapter.");
+      return;
+    }
+
+    // Validate content length (now allowing up to 50,000 characters)
+    if (formData.content.length > 50000) {
+      console.error("Content too long");
+      alert("Chapter content cannot exceed 50,000 characters.");
+      return;
+    }
     
     try {
       const chapterData = {
@@ -277,8 +290,12 @@ const ChapterManagement = () => {
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <Label htmlFor="novel_id">Novel</Label>
-                  <Select value={formData.novel_id} onValueChange={(value) => setFormData({ ...formData, novel_id: value })}>
+                  <Label htmlFor="novel_id">Novel *</Label>
+                  <Select 
+                    value={formData.novel_id} 
+                    onValueChange={(value) => setFormData({ ...formData, novel_id: value })}
+                    required
+                  >
                     <SelectTrigger className="bg-gray-700 border-gray-600">
                       <SelectValue placeholder="Select a novel" />
                     </SelectTrigger>
@@ -293,7 +310,7 @@ const ChapterManagement = () => {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="title">Title</Label>
+                    <Label htmlFor="title">Title *</Label>
                     <Input
                       id="title"
                       value={formData.title}
@@ -303,7 +320,7 @@ const ChapterManagement = () => {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="chapter_number">Chapter Number</Label>
+                    <Label htmlFor="chapter_number">Chapter Number *</Label>
                     <Input
                       id="chapter_number"
                       type="number"
@@ -315,13 +332,18 @@ const ChapterManagement = () => {
                   </div>
                 </div>
                 <div>
-                  <Label htmlFor="content">Content</Label>
+                  <Label htmlFor="content">Content * (Max 50,000 characters)</Label>
+                  <div className="text-sm text-gray-400 mb-2">
+                    {formData.content.length}/50,000 characters
+                  </div>
                   <Textarea
                     id="content"
                     value={formData.content}
                     onChange={(e) => setFormData({ ...formData, content: e.target.value })}
                     required
-                    className="bg-gray-700 border-gray-600 min-h-32"
+                    maxLength={50000}
+                    className="bg-gray-700 border-gray-600 min-h-40"
+                    placeholder="Enter chapter content..."
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -333,6 +355,7 @@ const ChapterManagement = () => {
                       value={formData.coin_price}
                       onChange={(e) => setFormData({ ...formData, coin_price: e.target.value })}
                       required
+                      min="1"
                       className="bg-gray-700 border-gray-600"
                     />
                   </div>
