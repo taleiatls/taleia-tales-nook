@@ -26,6 +26,7 @@ interface Chapter {
 interface Novel {
   id: string;
   title: string;
+  total_chapters: number;
 }
 
 const ChapterManagement = () => {
@@ -100,7 +101,7 @@ const ChapterManagement = () => {
     try {
       const { data, error } = await supabase
         .from('novels')
-        .select('id, title')
+        .select('id, title, total_chapters')
         .order('title');
 
       if (error) throw error;
@@ -159,6 +160,22 @@ const ChapterManagement = () => {
           throw error;
         }
         console.log("Chapter created successfully:", data);
+
+        // Update the novel's total_chapters count when a new chapter is created
+        const { error: novelUpdateError } = await supabase
+          .from('novels')
+          .update({ 
+            total_chapters: supabase.raw('total_chapters + 1'),
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', formData.novel_id);
+
+        if (novelUpdateError) {
+          console.error("Error updating novel total chapters:", novelUpdateError);
+          // Don't throw here as the chapter was already created successfully
+        } else {
+          console.log("Novel total chapters updated successfully");
+        }
       }
 
       setIsDialogOpen(false);
@@ -201,6 +218,22 @@ const ChapterManagement = () => {
             throw error;
           }
           console.log("Chapter deleted successfully:", data);
+
+          // Update the novel's total_chapters count when a chapter is deleted
+          const { error: novelUpdateError } = await supabase
+            .from('novels')
+            .update({ 
+              total_chapters: supabase.raw('GREATEST(total_chapters - 1, 0)'),
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', chapter.novel_id);
+
+          if (novelUpdateError) {
+            console.error("Error updating novel total chapters:", novelUpdateError);
+          } else {
+            console.log("Novel total chapters updated successfully");
+          }
+
           await fetchChapters();
         } catch (error) {
           console.error("Error deleting chapter:", error);

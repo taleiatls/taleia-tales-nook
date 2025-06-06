@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -156,10 +157,26 @@ const ChapterReader = () => {
       if (!chapterData.is_locked || (chapterData.is_locked && user)) {
         const purchased = chapterData.is_locked ? await checkChapterPurchased(chapterData.id) : true;
         if (purchased) {
+          // Update chapter view count
           await supabase
             .from('chapters')
             .update({ views: (chapterData.views || 0) + 1 })
             .eq('id', chapterData.id);
+
+          // Update novel view count
+          const { error: novelViewError } = await supabase
+            .from('novels')
+            .update({ 
+              total_views: supabase.raw('total_views + 1'),
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', novelData.id);
+
+          if (novelViewError) {
+            console.error("Error updating novel view count:", novelViewError);
+          } else {
+            console.log("Novel view count updated successfully");
+          }
         }
       }
 
