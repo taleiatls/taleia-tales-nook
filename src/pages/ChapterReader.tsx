@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -34,6 +33,7 @@ interface Novel {
   title: string;
   author: string;
   total_chapters: number;
+  total_views: number;
 }
 
 interface ChapterListItem {
@@ -86,7 +86,7 @@ const ChapterReader = () => {
       if (isUUID(id || '')) {
         const { data, error } = await supabase
           .from('novels')
-          .select('id, title, author, total_chapters')
+          .select('id, title, author, total_chapters, total_views')
           .eq('id', id)
           .eq('is_hidden', false)
           .maybeSingle();
@@ -97,7 +97,7 @@ const ChapterReader = () => {
         // Search by slug
         const { data: allNovels, error } = await supabase
           .from('novels')
-          .select('id, title, author, total_chapters')
+          .select('id, title, author, total_chapters, total_views')
           .eq('is_hidden', false);
 
         if (error) throw error;
@@ -164,18 +164,28 @@ const ChapterReader = () => {
             .eq('id', chapterData.id);
 
           // Update novel view count
-          const { error: novelViewError } = await supabase
+          const { data: currentNovelData, error: novelFetchError } = await supabase
             .from('novels')
-            .update({ 
-              total_views: supabase.raw('total_views + 1'),
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', novelData.id);
+            .select('total_views')
+            .eq('id', novelData.id)
+            .single();
 
-          if (novelViewError) {
-            console.error("Error updating novel view count:", novelViewError);
+          if (novelFetchError) {
+            console.error("Error fetching novel data:", novelFetchError);
           } else {
-            console.log("Novel view count updated successfully");
+            const { error: novelViewError } = await supabase
+              .from('novels')
+              .update({ 
+                total_views: (currentNovelData.total_views || 0) + 1,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', novelData.id);
+
+            if (novelViewError) {
+              console.error("Error updating novel view count:", novelViewError);
+            } else {
+              console.log("Novel view count updated successfully");
+            }
           }
         }
       }

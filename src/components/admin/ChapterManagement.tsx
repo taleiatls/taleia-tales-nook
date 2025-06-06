@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -162,19 +163,28 @@ const ChapterManagement = () => {
         console.log("Chapter created successfully:", data);
 
         // Update the novel's total_chapters count when a new chapter is created
-        const { error: novelUpdateError } = await supabase
+        const { data: novelData, error: novelFetchError } = await supabase
           .from('novels')
-          .update({ 
-            total_chapters: supabase.raw('total_chapters + 1'),
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', formData.novel_id);
+          .select('total_chapters')
+          .eq('id', formData.novel_id)
+          .single();
 
-        if (novelUpdateError) {
-          console.error("Error updating novel total chapters:", novelUpdateError);
-          // Don't throw here as the chapter was already created successfully
+        if (novelFetchError) {
+          console.error("Error fetching novel data:", novelFetchError);
         } else {
-          console.log("Novel total chapters updated successfully");
+          const { error: novelUpdateError } = await supabase
+            .from('novels')
+            .update({ 
+              total_chapters: (novelData.total_chapters || 0) + 1,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', formData.novel_id);
+
+          if (novelUpdateError) {
+            console.error("Error updating novel total chapters:", novelUpdateError);
+          } else {
+            console.log("Novel total chapters updated successfully");
+          }
         }
       }
 
@@ -220,18 +230,29 @@ const ChapterManagement = () => {
           console.log("Chapter deleted successfully:", data);
 
           // Update the novel's total_chapters count when a chapter is deleted
-          const { error: novelUpdateError } = await supabase
+          const { data: novelData, error: novelFetchError } = await supabase
             .from('novels')
-            .update({ 
-              total_chapters: supabase.raw('GREATEST(total_chapters - 1, 0)'),
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', chapter.novel_id);
+            .select('total_chapters')
+            .eq('id', chapter.novel_id)
+            .single();
 
-          if (novelUpdateError) {
-            console.error("Error updating novel total chapters:", novelUpdateError);
+          if (novelFetchError) {
+            console.error("Error fetching novel data:", novelFetchError);
           } else {
-            console.log("Novel total chapters updated successfully");
+            const newTotalChapters = Math.max((novelData.total_chapters || 0) - 1, 0);
+            const { error: novelUpdateError } = await supabase
+              .from('novels')
+              .update({ 
+                total_chapters: newTotalChapters,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', chapter.novel_id);
+
+            if (novelUpdateError) {
+              console.error("Error updating novel total chapters:", novelUpdateError);
+            } else {
+              console.log("Novel total chapters updated successfully");
+            }
           }
 
           await fetchChapters();
