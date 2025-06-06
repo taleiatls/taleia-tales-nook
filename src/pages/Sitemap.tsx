@@ -10,17 +10,6 @@ const Sitemap = () => {
       try {
         const content = await generateSitemap();
         setSitemapContent(content);
-        
-        // Set proper content type for XML
-        const metaTag = document.querySelector('meta[http-equiv="Content-Type"]');
-        if (metaTag) {
-          metaTag.setAttribute('content', 'application/xml; charset=utf-8');
-        } else {
-          const newMeta = document.createElement('meta');
-          newMeta.setAttribute('http-equiv', 'Content-Type');
-          newMeta.setAttribute('content', 'application/xml; charset=utf-8');
-          document.head.appendChild(newMeta);
-        }
       } catch (error) {
         console.error('Error generating sitemap:', error);
         setSitemapContent('<?xml version="1.0" encoding="UTF-8"?><error>Failed to generate sitemap</error>');
@@ -30,21 +19,40 @@ const Sitemap = () => {
     loadSitemap();
   }, []);
 
+  useEffect(() => {
+    // Set the document content type to XML
+    const metaTag = document.querySelector('meta[http-equiv="Content-Type"]');
+    if (metaTag) {
+      metaTag.setAttribute('content', 'application/xml; charset=utf-8');
+    } else {
+      const newMeta = document.createElement('meta');
+      newMeta.setAttribute('http-equiv', 'Content-Type');
+      newMeta.setAttribute('content', 'application/xml; charset=utf-8');
+      document.head.appendChild(newMeta);
+    }
+
+    // Remove any existing title
+    const titleTag = document.querySelector('title');
+    if (titleTag) {
+      titleTag.textContent = '';
+    }
+  }, [sitemapContent]);
+
   if (!sitemapContent) {
-    return <div>Generating sitemap...</div>;
+    return null;
   }
 
-  // Return the raw XML content without any HTML wrapper
+  // Return just the XML content without any React wrapper
   return (
-    <pre 
+    <div 
+      dangerouslySetInnerHTML={{ __html: sitemapContent }}
       style={{ 
         margin: 0, 
         padding: 0, 
         fontFamily: 'monospace',
-        whiteSpace: 'pre-wrap',
-        wordWrap: 'break-word'
+        whiteSpace: 'pre',
+        fontSize: '12px'
       }}
-      dangerouslySetInnerHTML={{ __html: sitemapContent }}
     />
   );
 };
