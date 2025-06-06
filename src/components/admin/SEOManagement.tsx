@@ -1,10 +1,10 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/sonner";
 import { FileText, Search, ExternalLink, Copy, Download, RefreshCw } from "lucide-react";
-import { getSitemapContent, downloadSitemap } from "@/utils/sitemapGenerator";
+import { downloadSitemap } from "@/utils/sitemapGenerator";
+import { getSitemapContent } from "@/utils/sitemapUpdater";
 
 const SEOManagement = () => {
   const [showFullContent, setShowFullContent] = useState(false);
