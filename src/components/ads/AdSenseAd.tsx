@@ -40,7 +40,7 @@ const AdSenseAd = ({
           width: responsive ? "100%" : width, 
           height: responsive ? "auto" : height 
         }}
-        data-ad-client="ca-pub-YOUR_PUBLISHER_ID" // Replace with your AdSense publisher ID
+        data-ad-client="ca-pub-7277063954373465"
         data-ad-slot={adSlot}
         data-ad-format={adFormat}
         data-full-width-responsive={responsive ? "true" : "false"}
