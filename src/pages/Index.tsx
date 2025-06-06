@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -5,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { BookOpen, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import Navbar from "@/components/Navbar";
+import SEO from "@/components/SEO";
 import { supabase } from "@/integrations/supabase/client";
 import HomeBannerAd from "@/components/ads/HomeBannerAd";
 import { slugify } from "@/lib/slugify";
@@ -96,6 +98,7 @@ const Index = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-black">
+        <SEO />
         <Navbar />
         <div className="max-w-4xl mx-auto px-4 py-8 text-center text-gray-300">
           <p>Loading novels...</p>
@@ -106,6 +109,11 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+      <SEO 
+        title="TaleiaTLS Novel Reader - Read Web Novels Online"
+        description="Discover and read amazing web novels on TaleiaTLS. Explore fantasy, romance, adventure stories and more in our extensive novel library."
+        keywords="web novels, online reading, fantasy novels, romance novels, adventure stories, light novels, fiction"
+      />
       <Navbar />
       
       {/* Featured Novels Slider */}

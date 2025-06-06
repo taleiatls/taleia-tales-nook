@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/sonner";
 import { Search as SearchIcon } from "lucide-react";
 import Navbar from "@/components/Navbar";
+import SEO from "@/components/SEO";
 import { supabase } from "@/integrations/supabase/client";
 import { slugify } from "@/lib/slugify";
 
@@ -64,6 +65,11 @@ const Search = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+      <SEO 
+        title="Search Novels - TaleiaTLS Novel Reader"
+        description="Search and discover your favorite web novels. Find stories by title, author, or genre on TaleiaTLS novel reader."
+        keywords="search novels, find stories, web novel search, book finder, novel discovery"
+      />
       <Navbar />
 
       <div className="container mx-auto px-4 py-8">
