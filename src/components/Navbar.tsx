@@ -68,6 +68,7 @@ const Navbar = () => {
   const navItems = [
     { name: "Home", href: "/", icon: Home },
     { name: "Browse", href: "/search", icon: Search },
+    { name: "Store", href: "/store", icon: Coins, onClick: handleStoreClick },
     ...(isAdmin ? [{ name: "Admin", href: "/admin", icon: Settings }] : []),
   ];
 
