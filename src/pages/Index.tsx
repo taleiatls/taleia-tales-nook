@@ -29,14 +29,51 @@ interface Novel {
   updated_at: string;
 }
 
+interface Chapter {
+  id: string;
+  title: string;
+  chapter_number: number;
+  created_at: string;
+}
+
+interface NovelWithChapters extends Novel {
+  latest_chapters: Chapter[];
+}
+
 const Index = () => {
   const [featuredNovels, setFeaturedNovels] = useState<Novel[]>([]);
-  const [recentlyUpdated, setRecentlyUpdated] = useState<Novel[]>([]);
+  const [recentlyUpdated, setRecentlyUpdated] = useState<NovelWithChapters[]>([]);
   const [popularNovels, setPopularNovels] = useState<Novel[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
+
+  // Function to format relative time
+  const formatRelativeTime = (dateString: string) => {
+    const now = new Date();
+    const date = new Date(dateString);
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (diffInSeconds < 60) {
+      return "a minute ago";
+    } else if (diffInSeconds < 3600) {
+      const minutes = Math.floor(diffInSeconds / 60);
+      return minutes === 1 ? "a minute ago" : `${minutes} minutes ago`;
+    } else if (diffInSeconds < 86400) {
+      const hours = Math.floor(diffInSeconds / 3600);
+      return hours === 1 ? "an hour ago" : `${hours} hours ago`;
+    } else if (diffInSeconds < 604800) {
+      const days = Math.floor(diffInSeconds / 86400);
+      return days === 1 ? "1 day ago" : `${days} days ago`;
+    } else if (diffInSeconds < 2419200) {
+      const weeks = Math.floor(diffInSeconds / 604800);
+      return weeks === 1 ? "1 week ago" : `${weeks} weeks ago`;
+    } else {
+      const months = Math.floor(diffInSeconds / 2419200);
+      return months === 1 ? "1 month ago" : `${months} months ago`;
+    }
+  };
 
   const fetchNovels = useCallback(async () => {
     setLoading(true);
@@ -56,12 +93,17 @@ const Index = () => {
         throw featuredError;
       }
 
-      // Fetch recently updated novels based on chapter activity
+      // Fetch recently updated novels with their latest 3 chapters
       const { data: recentlyUpdatedData, error: recentlyUpdatedError } = await supabase
         .from('novels')
         .select(`
           *,
-          chapters!inner(created_at)
+          chapters!inner(
+            id,
+            title,
+            chapter_number,
+            created_at
+          )
         `)
         .eq('is_hidden', false)
         .order('updated_at', { ascending: false })
@@ -78,28 +120,49 @@ const Index = () => {
           .limit(15);
         
         if (fallbackError) throw fallbackError;
-        setRecentlyUpdated(fallbackData || []);
+        setRecentlyUpdated((fallbackData || []).map(novel => ({ ...novel, latest_chapters: [] })));
       } else {
-        // Remove duplicates and format the data
-        const uniqueNovels = recentlyUpdatedData?.reduce((acc: Novel[], novel: any) => {
-          if (!acc.find(n => n.id === novel.id)) {
-            acc.push({
-              id: novel.id,
-              title: novel.title,
-              author: novel.author,
-              synopsis: novel.synopsis,
-              cover_image_url: novel.cover_image_url,
-              created_at: novel.created_at,
-              updated_at: novel.updated_at
+        // Process the data to get unique novels with their latest 3 chapters
+        const novelsMap = new Map<string, NovelWithChapters>();
+        
+        recentlyUpdatedData?.forEach((item: any) => {
+          const novelId = item.id;
+          
+          if (!novelsMap.has(novelId)) {
+            novelsMap.set(novelId, {
+              id: item.id,
+              title: item.title,
+              author: item.author,
+              synopsis: item.synopsis,
+              cover_image_url: item.cover_image_url,
+              created_at: item.created_at,
+              updated_at: item.updated_at,
+              latest_chapters: []
             });
           }
-          return acc;
-        }, []) || [];
+          
+          const novel = novelsMap.get(novelId)!;
+          if (item.chapters && novel.latest_chapters.length < 3) {
+            novel.latest_chapters.push({
+              id: item.chapters.id,
+              title: item.chapters.title,
+              chapter_number: item.chapters.chapter_number,
+              created_at: item.chapters.created_at
+            });
+          }
+        });
+
+        // Sort chapters by creation date for each novel
+        Array.from(novelsMap.values()).forEach(novel => {
+          novel.latest_chapters.sort((a, b) => 
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          );
+        });
         
-        setRecentlyUpdated(uniqueNovels);
+        setRecentlyUpdated(Array.from(novelsMap.values()));
       }
 
-      // Fetch popular novels (random selection for now)
+      // Fetch popular novels
       const { data: popularData, error: popularError } = await supabase
         .from('novels')
         .select('*')
@@ -189,12 +252,12 @@ const Index = () => {
                   >
                     <div className="flex h-full">
                       {novel.cover_image_url && (
-                        <div className="w-1/3 h-full flex items-center justify-center bg-gray-900">
+                        <div className="w-1/3 h-full flex items-center justify-center">
                           <img
                             src={novel.cover_image_url}
                             alt={`Cover of ${novel.title}`}
-                            className="max-w-full max-h-full object-cover rounded-lg shadow-lg"
-                            style={{ width: 'auto', height: '90%' }}
+                            className="object-cover rounded-lg shadow-lg"
+                            style={{ width: '864px', height: '480px', maxWidth: '100%', maxHeight: '100%' }}
                             onError={(e) => {
                               const target = e.target as HTMLImageElement;
                               target.style.display = 'none';
@@ -265,17 +328,45 @@ const Index = () => {
                 <Link key={novel.id} to={`/novel/${novelSlug}`}>
                   <Card className="bg-gray-800 border-gray-700 hover:bg-gray-700 transition-colors">
                     <CardContent className="p-4">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h3 className="text-lg font-semibold text-gray-100">{novel.title}</h3>
-                          <p className="text-gray-400">By {novel.author}</p>
-                          <p className="text-gray-300 text-sm mt-2">
-                            {novel.synopsis?.substring(0, 150)}...
-                          </p>
+                      <div className="flex space-x-4">
+                        {/* Novel Image */}
+                        <div className="flex-shrink-0">
+                          {novel.cover_image_url ? (
+                            <img
+                              src={novel.cover_image_url}
+                              alt={`Cover of ${novel.title}`}
+                              className="w-20 h-28 object-cover rounded"
+                            />
+                          ) : (
+                            <div className="w-20 h-28 bg-gray-600 rounded flex items-center justify-center">
+                              <BookOpen className="h-8 w-8 text-gray-400" />
+                            </div>
+                          )}
                         </div>
-                        <span className="text-xs text-gray-500">
-                          {new Date(novel.updated_at).toLocaleDateString()}
-                        </span>
+                        
+                        {/* Novel Info and Chapters */}
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-lg font-semibold text-gray-100 mb-1">{novel.title}</h3>
+                          <p className="text-gray-400 text-sm mb-3">By {novel.author}</p>
+                          
+                          {/* Latest Chapters */}
+                          <div className="space-y-1">
+                            {novel.latest_chapters.length > 0 ? (
+                              novel.latest_chapters.map((chapter) => (
+                                <div key={chapter.id} className="flex justify-between items-center text-sm">
+                                  <span className="text-gray-300 truncate mr-2">
+                                    Chapter {chapter.chapter_number}: {chapter.title}
+                                  </span>
+                                  <span className="text-gray-500 text-xs whitespace-nowrap">
+                                    {formatRelativeTime(chapter.created_at)}
+                                  </span>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="text-gray-500 text-sm">No chapters available</div>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
