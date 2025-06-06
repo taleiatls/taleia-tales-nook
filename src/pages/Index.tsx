@@ -26,6 +26,7 @@ interface Novel {
   synopsis: string | null;
   cover_image_url: string | null;
   created_at: string;
+  updated_at: string;
 }
 
 const Index = () => {
@@ -42,28 +43,81 @@ const Index = () => {
     try {
       console.log("Fetching novels from Supabase...");
       
-      const { data, error } = await supabase
+      // Fetch featured novels (newest novels)
+      const { data: featuredData, error: featuredError } = await supabase
         .from('novels')
         .select('*')
         .eq('is_hidden', false)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(5);
 
-      if (error) {
-        console.error("Supabase error:", error);
-        throw error;
+      if (featuredError) {
+        console.error("Error fetching featured novels:", featuredError);
+        throw featuredError;
       }
 
-      console.log("Fetched novels:", data);
-      const novels = data || [];
+      // Fetch recently updated novels based on chapter activity
+      const { data: recentlyUpdatedData, error: recentlyUpdatedError } = await supabase
+        .from('novels')
+        .select(`
+          *,
+          chapters!inner(created_at)
+        `)
+        .eq('is_hidden', false)
+        .order('updated_at', { ascending: false })
+        .limit(15);
+
+      if (recentlyUpdatedError) {
+        console.error("Error fetching recently updated novels:", recentlyUpdatedError);
+        // Fall back to basic novel fetch if the join fails
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from('novels')
+          .select('*')
+          .eq('is_hidden', false)
+          .order('updated_at', { ascending: false })
+          .limit(15);
+        
+        if (fallbackError) throw fallbackError;
+        setRecentlyUpdated(fallbackData || []);
+      } else {
+        // Remove duplicates and format the data
+        const uniqueNovels = recentlyUpdatedData?.reduce((acc: Novel[], novel: any) => {
+          if (!acc.find(n => n.id === novel.id)) {
+            acc.push({
+              id: novel.id,
+              title: novel.title,
+              author: novel.author,
+              synopsis: novel.synopsis,
+              cover_image_url: novel.cover_image_url,
+              created_at: novel.created_at,
+              updated_at: novel.updated_at
+            });
+          }
+          return acc;
+        }, []) || [];
+        
+        setRecentlyUpdated(uniqueNovels);
+      }
+
+      // Fetch popular novels (random selection for now)
+      const { data: popularData, error: popularError } = await supabase
+        .from('novels')
+        .select('*')
+        .eq('is_hidden', false)
+        .order('total_views', { ascending: false })
+        .limit(6);
+
+      if (popularError) {
+        console.error("Error fetching popular novels:", popularError);
+        throw popularError;
+      }
+
+      console.log("Fetched featured novels:", featuredData);
+      console.log("Fetched recently updated novels:", recentlyUpdatedData);
+      console.log("Fetched popular novels:", popularData);
       
-      // Set featured novels (first 5)
-      setFeaturedNovels(novels.slice(0, 5));
-      
-      // Set recently updated (next 10)
-      setRecentlyUpdated(novels.slice(5, 15));
-      
-      // Set popular novels (random selection)
-      setPopularNovels(novels.slice(0, 6));
+      setFeaturedNovels(featuredData || []);
+      setPopularNovels(popularData || []);
     } catch (error) {
       console.error("Error fetching novels:", error);
       toast.error("Failed to fetch novels");
@@ -220,7 +274,7 @@ const Index = () => {
                           </p>
                         </div>
                         <span className="text-xs text-gray-500">
-                          {new Date(novel.created_at).toLocaleDateString()}
+                          {new Date(novel.updated_at).toLocaleDateString()}
                         </span>
                       </div>
                     </CardContent>
