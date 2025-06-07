@@ -116,6 +116,28 @@ const ChapterReader = () => {
     }
   };
 
+  const getThemeSettingsButtonClasses = () => {
+    switch (readingSettings.theme) {
+      case 'light':
+        return 'border-gray-300 text-gray-700 hover:bg-gray-100';
+      case 'comfort':
+        return 'border-amber-300 text-amber-800 hover:bg-amber-100';
+      default:
+        return 'border-gray-600 text-gray-300 hover:bg-gray-700';
+    }
+  };
+
+  const getThemeSubtextClasses = () => {
+    switch (readingSettings.theme) {
+      case 'light':
+        return 'text-gray-600';
+      case 'comfort':
+        return 'text-amber-700';
+      default:
+        return 'text-gray-400';
+    }
+  };
+
   const getFontFamily = () => {
     switch (readingSettings.font_family) {
       case 'sans-serif':
@@ -381,7 +403,7 @@ const ChapterReader = () => {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4">
                 <div className="flex-1">
                   <h1 className={`text-2xl md:text-3xl font-bold mb-2 ${getThemeTextClasses()}`}>{chapter.title}</h1>
-                  <p className={`text-sm md:text-base ${readingSettings.theme === 'light' ? 'text-gray-600' : readingSettings.theme === 'comfort' ? 'text-amber-700' : 'text-gray-400'}`}>
+                  <p className={`text-sm md:text-base ${getThemeSubtextClasses()}`}>
                     Chapter {chapter.chapter_number} of {novel.total_chapters}
                   </p>
                 </div>
