@@ -418,6 +418,7 @@ const ChapterReader = () => {
                     currentChapter={chapter.chapter_number}
                     novelTitle={novel.title}
                     novelSlug={novelSlug}
+                    currentSettings={readingSettings}
                   />
                 </div>
               </div>

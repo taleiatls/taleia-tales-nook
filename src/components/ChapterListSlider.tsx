@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -6,7 +5,7 @@ import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/co
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { List, Lock } from "lucide-react";
-import { useReadingSettings } from "@/hooks/useReadingSettings";
+import { useReadingSettings, ReadingSettings } from "@/hooks/useReadingSettings";
 
 interface ChapterListItem {
   id: string;
@@ -22,11 +21,15 @@ interface ChapterListSliderProps {
   currentChapter: number;
   novelTitle: string;
   novelSlug: string;
+  currentSettings?: ReadingSettings;
 }
 
-const ChapterListSlider = ({ chapters, currentChapter, novelTitle, novelSlug }: ChapterListSliderProps) => {
+const ChapterListSlider = ({ chapters, currentChapter, novelTitle, novelSlug, currentSettings }: ChapterListSliderProps) => {
   const [isOpen, setIsOpen] = useState(false);
-  const { settings } = useReadingSettings();
+  const { settings: hookSettings } = useReadingSettings();
+
+  // Use provided settings or fall back to hook settings
+  const settings = currentSettings || hookSettings;
 
   // Theme helper functions
   const getThemeButtonClasses = () => {
