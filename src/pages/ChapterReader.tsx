@@ -97,11 +97,11 @@ const ChapterReader = () => {
   const getThemeCardClasses = () => {
     switch (readingSettings.theme) {
       case 'light':
-        return 'bg-white text-gray-900';
+        return 'bg-white text-gray-900 border-white';
       case 'comfort':
-        return 'bg-amber-50 text-amber-900';
+        return 'bg-amber-50 text-amber-900 border-amber-50';
       default:
-        return 'bg-gray-800 text-gray-200 ';
+        return 'bg-gray-800 text-gray-200 border-gray-800';
     }
   };
 
