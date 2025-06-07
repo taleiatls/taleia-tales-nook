@@ -92,6 +92,8 @@ export const useReadingSettings = () => {
           line_height: newSettings.line_height,
           theme: newSettings.theme,
           updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_id'
         });
 
       if (error) throw error;
