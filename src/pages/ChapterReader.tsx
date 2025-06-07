@@ -15,6 +15,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCoins } from "@/hooks/useCoins";
 import { isUUID, slugify } from "@/lib/slugify";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useChapterCache } from "@/hooks/useChapterCache";
 
 interface Chapter {
   id: string;
@@ -71,6 +72,9 @@ const ChapterReader = () => {
   });
   const navigate = useNavigate();
 
+  // Initialize chapter cache
+  const { getCachedChapter, setCachedChapter, preloadChapter } = useChapterCache(novel?.id || '');
+
   const fetchChapterData = useCallback(async () => {
     if (!id || !chapterId) return;
     
@@ -124,16 +128,33 @@ const ChapterReader = () => {
       if (allChaptersError) throw allChaptersError;
       setAllChapters(allChaptersData || []);
 
-      // Fetch the specific chapter
-      const { data: chapterData, error: chapterError } = await supabase
-        .from('chapters')
-        .select('*')
-        .eq('novel_id', novelData.id)
-        .eq('chapter_number', parseInt(chapterId || '1'))
-        .eq('is_hidden', false)
-        .maybeSingle();
+      const currentChapterNumber = parseInt(chapterId || '1');
 
-      if (chapterError) throw chapterError;
+      // Try to get chapter from cache first
+      const cachedChapter = getCachedChapter(currentChapterNumber);
+      let chapterData: Chapter | null = null;
+
+      if (cachedChapter) {
+        console.log("Loading chapter from cache");
+        chapterData = cachedChapter;
+      } else {
+        // Fetch the specific chapter from database
+        const { data: fetchedChapter, error: chapterError } = await supabase
+          .from('chapters')
+          .select('*')
+          .eq('novel_id', novelData.id)
+          .eq('chapter_number', currentChapterNumber)
+          .eq('is_hidden', false)
+          .maybeSingle();
+
+        if (chapterError) throw chapterError;
+        chapterData = fetchedChapter;
+
+        // Cache the chapter
+        if (chapterData) {
+          setCachedChapter(chapterData);
+        }
+      }
 
       if (!chapterData) {
         toast.error("Chapter not found");
@@ -190,6 +211,20 @@ const ChapterReader = () => {
         }
       }
 
+      // Preload adjacent chapters in background
+      const prevChapterNumber = currentChapterNumber - 1;
+      const nextChapterNumber = currentChapterNumber + 1;
+
+      // Preload previous chapter
+      if (prevChapterNumber >= 1) {
+        setTimeout(() => preloadChapter(prevChapterNumber), 100);
+      }
+
+      // Preload next chapter
+      if (nextChapterNumber <= novelData.total_chapters) {
+        setTimeout(() => preloadChapter(nextChapterNumber), 200);
+      }
+
     } catch (error) {
       console.error("Error fetching chapter data:", error);
       toast.error("Failed to load chapter");
@@ -197,7 +232,7 @@ const ChapterReader = () => {
       setLoading(false);
       setCheckingAccess(false);
     }
-  }, [id, chapterId, user?.id, navigate]); // Remove checkChapterPurchased from dependencies
+  }, [id, chapterId, user?.id, navigate, getCachedChapter, setCachedChapter, preloadChapter]);
 
   const fetchReadingSettings = useCallback(async () => {
     if (user) {
