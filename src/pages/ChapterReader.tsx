@@ -71,11 +71,11 @@ const ChapterReader = () => {
   // Initialize chapter cache
   const { getCachedChapter, setCachedChapter, preloadChapter } = useChapterCache(novel?.id || '');
 
-  // Theme helper functions - moved to top to avoid declaration order issues
+  // Theme helper functions
   const getThemeBackgroundClasses = () => {
     switch (readingSettings.theme) {
       case 'light':
-        return 'bg-white';
+        return 'bg-gray-50';
       case 'comfort':
         return 'bg-amber-50';
       default:
@@ -97,33 +97,33 @@ const ChapterReader = () => {
   const getThemeCardClasses = () => {
     switch (readingSettings.theme) {
       case 'light':
-        return 'bg-white text-gray-900 border-white';
+        return 'bg-white text-gray-900 border-gray-200';
       case 'comfort':
-        return 'bg-amber-50 text-amber-900 border-amber-50';
+        return 'bg-amber-25 text-amber-900 border-amber-200';
       default:
-        return 'bg-gray-800 text-gray-200 border-gray-800';
+        return 'bg-gray-800 text-gray-200 border-gray-700';
     }
   };
 
   const getThemeButtonClasses = () => {
     switch (readingSettings.theme) {
       case 'light':
-        return 'border-gray-300 text-gray-700 hover:bg-gray-100';
+        return 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400';
       case 'comfort':
-        return 'border-amber-300 text-amber-800 hover:bg-amber-100';
+        return 'bg-amber-25 border-amber-300 text-amber-800 hover:bg-amber-100 hover:border-amber-400';
       default:
-        return 'border-gray-600 text-gray-300 hover:bg-gray-700';
+        return 'bg-gray-800 border-gray-600 text-gray-300 hover:bg-gray-700 hover:border-gray-500';
     }
   };
 
   const getThemeSettingsButtonClasses = () => {
     switch (readingSettings.theme) {
       case 'light':
-        return 'border-gray-300 text-gray-700 hover:bg-gray-100';
+        return 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50';
       case 'comfort':
-        return 'border-amber-300 text-amber-800 hover:bg-amber-100';
+        return 'bg-amber-25 border-amber-300 text-amber-800 hover:bg-amber-100';
       default:
-        return 'border-gray-600 text-gray-300 hover:bg-gray-700';
+        return 'bg-gray-800 border-gray-600 text-gray-300 hover:bg-gray-700';
     }
   };
 
@@ -359,7 +359,7 @@ const ChapterReader = () => {
           {/* Navigation */}
           <div className="mb-6">
             <Link to={`/novel/${novelSlug}`}>
-              <Button variant="outline" className={`mb-4 ${getThemeButtonClasses()}`}>
+              <Button variant="outline" className={getThemeButtonClasses()}>
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back to Novel
               </Button>
@@ -393,7 +393,7 @@ const ChapterReader = () => {
             {/* Header */}
             <div className="mb-6">
               <Link to={`/novel/${novelSlug}`}>
-                <Button variant="outline" className={`mb-4 ${getThemeButtonClasses()}`}>
+                <Button variant="outline" className={getThemeButtonClasses()}>
                   <ArrowLeft className="mr-2 h-4 w-4" />
                   <span className="hidden sm:inline">Back to {novel.title}</span>
                   <span className="sm:hidden">Back</span>
