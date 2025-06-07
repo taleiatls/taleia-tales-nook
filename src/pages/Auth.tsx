@@ -11,6 +11,8 @@ import { BookOpen } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import { z } from "zod";
 import Navbar from "@/components/Navbar";
+import { supabase } from "@/integrations/supabase/client";
+import { secureSignIn, cleanupAuthState } from "@/utils/authCleanup";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -26,7 +28,7 @@ const registerSchema = loginSchema.extend({
 });
 
 const Auth = () => {
-  const { user, signIn, signUp, isLoading } = useAuth();
+  const { user, signUp, isLoading } = useAuth();
   const [activeTab, setActiveTab] = useState("login");
   
   // Login form state
@@ -63,9 +65,15 @@ const Auth = () => {
         return;
       }
 
-      await signIn(loginEmail, loginPassword);
+      const { error } = await secureSignIn(supabase, loginEmail, loginPassword);
+      if (error) {
+        // Don't expose detailed error messages for security
+        toast.error("Invalid email or password. Please try again.");
+        console.error("Login error:", error);
+      }
     } catch (error) {
       console.error("Login error:", error);
+      toast.error("An error occurred during login. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -93,11 +101,15 @@ const Auth = () => {
         return;
       }
 
+      // Clean up any existing auth state before registration
+      cleanupAuthState();
+
       await signUp(registerEmail, registerPassword, username);
       setActiveTab("login");
       toast.success("Account created! Please check your email to confirm your registration.");
     } catch (error) {
       console.error("Registration error:", error);
+      toast.error("An error occurred during registration. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -140,6 +152,7 @@ const Auth = () => {
                         value={loginEmail}
                         onChange={(e) => setLoginEmail(e.target.value)}
                         className="bg-gray-800 border-gray-700 text-white"
+                        autoComplete="email"
                       />
                       {formErrors.email && <p className="text-sm text-red-500">{formErrors.email}</p>}
                     </div>
@@ -155,6 +168,7 @@ const Auth = () => {
                         value={loginPassword}
                         onChange={(e) => setLoginPassword(e.target.value)}
                         className="bg-gray-800 border-gray-700 text-white"
+                        autoComplete="current-password"
                       />
                       {formErrors.password && <p className="text-sm text-red-500">{formErrors.password}</p>}
                     </div>
@@ -183,6 +197,7 @@ const Auth = () => {
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
                         className="bg-gray-800 border-gray-700 text-white"
+                        autoComplete="username"
                       />
                       {formErrors.username && <p className="text-sm text-red-500">{formErrors.username}</p>}
                     </div>
@@ -196,6 +211,7 @@ const Auth = () => {
                         value={registerEmail}
                         onChange={(e) => setRegisterEmail(e.target.value)}
                         className="bg-gray-800 border-gray-700 text-white"
+                        autoComplete="email"
                       />
                       {formErrors.email && <p className="text-sm text-red-500">{formErrors.email}</p>}
                     </div>
@@ -209,6 +225,7 @@ const Auth = () => {
                         value={registerPassword}
                         onChange={(e) => setRegisterPassword(e.target.value)}
                         className="bg-gray-800 border-gray-700 text-white"
+                        autoComplete="new-password"
                       />
                       {formErrors.password && <p className="text-sm text-red-500">{formErrors.password}</p>}
                     </div>
@@ -222,6 +239,7 @@ const Auth = () => {
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         className="bg-gray-800 border-gray-700 text-white"
+                        autoComplete="new-password"
                       />
                       {formErrors.confirmPassword && <p className="text-sm text-red-500">{formErrors.confirmPassword}</p>}
                     </div>

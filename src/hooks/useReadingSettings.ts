@@ -59,7 +59,10 @@ export const useReadingSettings = () => {
         .eq('user_id', user.id)
         .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error loading user settings:', error);
+        return DEFAULT_SETTINGS;
+      }
 
       if (data) {
         return {
@@ -96,10 +99,15 @@ export const useReadingSettings = () => {
           onConflict: 'user_id'
         });
 
-      if (error) throw error;
-      console.log('Settings saved successfully to database');
+      if (error) {
+        console.error('Database save error:', error);
+        // Don't throw error to avoid breaking UI, just log it
+      } else {
+        console.log('Settings saved successfully to database');
+      }
     } catch (error) {
       console.error('Error saving user settings:', error);
+      // Don't throw error to avoid breaking UI
     } finally {
       setIsSaving(false);
     }
@@ -143,20 +151,25 @@ export const useReadingSettings = () => {
     const initializeSettings = async () => {
       setIsLoading(true);
       
-      if (user) {
-        // For logged-in users, load from database
-        const userSettings = await loadUserSettings();
-        setSettings(userSettings);
-        
-        // Migrate guest settings if needed
-        await migrateGuestSettings();
-      } else {
-        // For guest users, load from localStorage
-        const guestSettings = loadGuestSettings();
-        setSettings(guestSettings);
+      try {
+        if (user) {
+          // For logged-in users, load from database
+          const userSettings = await loadUserSettings();
+          setSettings(userSettings);
+          
+          // Migrate guest settings if needed
+          await migrateGuestSettings();
+        } else {
+          // For guest users, load from localStorage
+          const guestSettings = loadGuestSettings();
+          setSettings(guestSettings);
+        }
+      } catch (error) {
+        console.error('Error initializing settings:', error);
+        setSettings(DEFAULT_SETTINGS);
+      } finally {
+        setIsLoading(false);
       }
-      
-      setIsLoading(false);
     };
 
     initializeSettings();

@@ -44,22 +44,34 @@ const UserManagement = () => {
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (profilesError) throw profilesError;
+      if (profilesError) {
+        console.error("Error fetching profiles:", profilesError);
+        toast.error("Failed to fetch user profiles");
+        return;
+      }
 
       // Then get coin balances for each user
       const usersWithCoins: UserProfile[] = [];
       
       for (const profile of profiles || []) {
-        const { data: coinData } = await supabase
-          .from('user_coins')
-          .select('balance')
-          .eq('user_id', profile.id)
-          .single();
+        try {
+          const { data: coinData } = await supabase
+            .from('user_coins')
+            .select('balance')
+            .eq('user_id', profile.id)
+            .single();
 
-        usersWithCoins.push({
-          ...profile,
-          coin_balance: coinData?.balance || 0
-        });
+          usersWithCoins.push({
+            ...profile,
+            coin_balance: coinData?.balance || 0
+          });
+        } catch (error) {
+          // If coin data fetch fails, just set balance to 0
+          usersWithCoins.push({
+            ...profile,
+            coin_balance: 0
+          });
+        }
       }
 
       setUsers(usersWithCoins);
@@ -83,7 +95,11 @@ const UserManagement = () => {
         p_description: description || 'Admin adjustment'
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("RPC error:", error);
+        toast.error("Failed to adjust coins - insufficient permissions");
+        return;
+      }
 
       const response = data as unknown as CoinAdjustmentResponse;
       
@@ -173,6 +189,7 @@ const UserManagement = () => {
                 required
                 className="bg-gray-700 border-gray-600"
                 placeholder="Enter new coin balance"
+                min="0"
               />
             </div>
             <div>
@@ -183,6 +200,7 @@ const UserManagement = () => {
                 onChange={(e) => setDescription(e.target.value)}
                 className="bg-gray-700 border-gray-600"
                 placeholder="Reason for adjustment"
+                maxLength={100}
               />
             </div>
             <div className="flex justify-end space-x-2">
