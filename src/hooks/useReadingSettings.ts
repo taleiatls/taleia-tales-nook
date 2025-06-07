@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -23,6 +23,8 @@ export const useReadingSettings = () => {
   const { user } = useAuth();
   const [settings, setSettings] = useState<ReadingSettings>(DEFAULT_SETTINGS);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Load settings from localStorage for guest users
   const loadGuestSettings = useCallback((): ReadingSettings => {
@@ -73,11 +75,14 @@ export const useReadingSettings = () => {
     return DEFAULT_SETTINGS;
   }, [user]);
 
-  // Save settings to database for logged-in users
-  const saveUserSettings = useCallback(async (newSettings: ReadingSettings) => {
+  // Save settings to database for logged-in users (background save)
+  const saveUserSettingsToDatabase = useCallback(async (newSettings: ReadingSettings) => {
     if (!user) return;
 
     try {
+      setIsSaving(true);
+      console.log('Saving settings to database:', newSettings);
+      
       const { error } = await supabase
         .from('user_reading_settings')
         .upsert({
@@ -90,10 +95,30 @@ export const useReadingSettings = () => {
         });
 
       if (error) throw error;
+      console.log('Settings saved successfully to database');
     } catch (error) {
       console.error('Error saving user settings:', error);
+    } finally {
+      setIsSaving(false);
     }
   }, [user]);
+
+  // Debounced save function
+  const debouncedSave = useCallback((newSettings: ReadingSettings) => {
+    // Clear existing timeout
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    // Set new timeout for 2 seconds
+    saveTimeoutRef.current = setTimeout(() => {
+      if (user) {
+        saveUserSettingsToDatabase(newSettings);
+      } else {
+        saveGuestSettings(newSettings);
+      }
+    }, 2000);
+  }, [user, saveUserSettingsToDatabase, saveGuestSettings]);
 
   // Migrate guest settings to user account when logging in
   const migrateGuestSettings = useCallback(async () => {
@@ -106,10 +131,10 @@ export const useReadingSettings = () => {
     
     // If user has no settings or settings are default, migrate guest settings
     if (JSON.stringify(existingSettings) === JSON.stringify(DEFAULT_SETTINGS)) {
-      await saveUserSettings(guestSettings);
+      await saveUserSettingsToDatabase(guestSettings);
       setSettings(guestSettings);
     }
-  }, [user, loadGuestSettings, loadUserSettings, saveUserSettings]);
+  }, [user, loadGuestSettings, loadUserSettings, saveUserSettingsToDatabase]);
 
   // Initialize settings
   useEffect(() => {
@@ -135,22 +160,35 @@ export const useReadingSettings = () => {
     initializeSettings();
   }, [user, loadUserSettings, loadGuestSettings, migrateGuestSettings]);
 
-  // Update settings
-  const updateSettings = useCallback(async (newSettings: ReadingSettings) => {
+  // Update settings with immediate UI update and debounced background save
+  const updateSettings = useCallback((newSettings: ReadingSettings) => {
+    console.log('Updating settings:', newSettings);
+    
+    // Update UI immediately
     setSettings(newSettings);
 
-    if (user) {
-      // Save to database for logged-in users
-      await saveUserSettings(newSettings);
-    } else {
-      // Save to localStorage for guest users
+    // Save to localStorage immediately for guests (instant backup)
+    if (!user) {
       saveGuestSettings(newSettings);
     }
-  }, [user, saveUserSettings, saveGuestSettings]);
+
+    // Schedule background save (for database if user is logged in, or as backup for guests)
+    debouncedSave(newSettings);
+  }, [user, saveGuestSettings, debouncedSave]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return {
     settings,
     updateSettings,
-    isLoading
+    isLoading,
+    isSaving
   };
 };

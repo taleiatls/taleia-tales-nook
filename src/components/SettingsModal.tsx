@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Slider } from "@/components/ui/slider";
 import { toast } from "@/components/ui/sonner";
-import { Settings } from "lucide-react";
+import { Settings, Save } from "lucide-react";
 import { useReadingSettings, ReadingSettings } from "@/hooks/useReadingSettings";
 
 interface SettingsModalProps {
@@ -17,7 +17,7 @@ interface SettingsModalProps {
 
 const SettingsModal = ({ currentSettings, onSettingsChange }: SettingsModalProps) => {
   const { user } = useAuth();
-  const { settings: hookSettings, updateSettings, isLoading } = useReadingSettings();
+  const { settings: hookSettings, updateSettings, isLoading, isSaving } = useReadingSettings();
   const [open, setOpen] = useState(false);
 
   // Use hook settings or provided settings
@@ -69,23 +69,25 @@ const SettingsModal = ({ currentSettings, onSettingsChange }: SettingsModalProps
   };
 
   // Handle setting changes with immediate application
-  const handleSettingChange = async (newSettings: ReadingSettings) => {
+  const handleSettingChange = (newSettings: ReadingSettings) => {
     try {
-      // Apply settings immediately
+      console.log("Settings changing to:", newSettings);
+      
+      // Apply settings immediately to UI
       onSettingsChange?.(newSettings);
       
-      // Save settings (to localStorage for guests, database for users)
-      await updateSettings(newSettings);
+      // Update settings (this will trigger background save after 2 seconds)
+      updateSettings(newSettings);
       
-      // Show appropriate toast message
+      // Show toast based on user status
       if (user) {
-        toast.success("Settings saved!");
+        toast.success("Settings updated! Saving in background...");
       } else {
-        toast.success("Settings applied and will be saved when you log in");
+        toast.success("Settings updated! Will sync when you log in");
       }
     } catch (error) {
-      console.error("Error saving settings:", error);
-      toast.error("Failed to save settings");
+      console.error("Error updating settings:", error);
+      toast.error("Failed to update settings");
     }
   };
 
@@ -94,12 +96,20 @@ const SettingsModal = ({ currentSettings, onSettingsChange }: SettingsModalProps
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" className={getThemeButtonClasses()}>
           <Settings className="h-4 w-4" />
+          {isSaving && <Save className="h-3 w-3 ml-1 animate-pulse" />}
         </Button>
       </DialogTrigger>
       
       <DialogContent className={`max-w-md ${getThemeDialogClasses()}`}>
         <DialogHeader>
-          <DialogTitle className={getThemeLabelClasses()}>Reading Settings</DialogTitle>
+          <DialogTitle className={getThemeLabelClasses()}>
+            Reading Settings
+            {isSaving && (
+              <span className="text-xs ml-2 opacity-70">
+                (Saving...)
+              </span>
+            )}
+          </DialogTitle>
         </DialogHeader>
         
         {isLoading ? (
@@ -206,6 +216,13 @@ const SettingsModal = ({ currentSettings, onSettingsChange }: SettingsModalProps
                 <p>This is how your text will appear when reading chapters.</p>
               </div>
             </div>
+
+            {/* Status indicator */}
+            {!user && (
+              <div className={`text-xs text-center opacity-70 ${getThemeLabelClasses()}`}>
+                Settings saved locally. Sign in to sync across devices.
+              </div>
+            )}
           </div>
         )}
       </DialogContent>
