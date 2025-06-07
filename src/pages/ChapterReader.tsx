@@ -424,7 +424,7 @@ const ChapterReader = () => {
             </div>
 
             {/* Chapter Content */}
-            <Card className={`p-4 md:p-8 ${getThemeCardClasses()} ${getFontFamily()}`}>
+            <Card className={`p-4 md:p-8  ${getFontFamily()}`}>
               <CardContent className="p-0">
                 <div 
                   className={`p-4 md:p-8 ${getFontFamily()}`}
