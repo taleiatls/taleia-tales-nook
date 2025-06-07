@@ -1,282 +1,39 @@
-import { useState, useEffect, useCallback } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
-import { Card, CardContent } from "@/components/ui/card";
+
+import { useCallback } from "react";
+import { useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight, BookOpen } from "lucide-react";
-import { toast } from "@/components/ui/sonner";
+import { ArrowLeft } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import LockedChapter from "@/components/LockedChapter";
-import ChapterListSlider from "@/components/ChapterListSlider";
-import SettingsModal from "@/components/SettingsModal";
 import ChapterSidebarAd from "@/components/ads/ChapterSidebarAd";
 import MobileStatusBarAd from "@/components/ads/MobileStatusBarAd";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
-import { useCoins } from "@/hooks/useCoins";
-import { isUUID, slugify } from "@/lib/slugify";
+import ChapterHeader from "@/components/chapter/ChapterHeader";
+import ChapterContent from "@/components/chapter/ChapterContent";
+import ChapterNavigation from "@/components/chapter/ChapterNavigation";
+import { slugify } from "@/lib/slugify";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useChapterCache } from "@/hooks/useChapterCache";
-
-interface Chapter {
-  id: string;
-  novel_id: string;
-  chapter_number: number;
-  title: string;
-  content: string;
-  views: number;
-  created_at: string;
-  is_locked: boolean;
-  coin_price: number;
-}
-
-interface Novel {
-  id: string;
-  title: string;
-  author: string;
-  total_chapters: number;
-  total_views: number;
-}
-
-interface ChapterListItem {
-  id: string;
-  chapter_number: number;
-  title: string;
-  created_at: string;
-  is_locked: boolean;
-  coin_price: number;
-}
-
-interface ReadingSettings {
-  font_size: number;
-  font_family: string;
-  line_height: number;
-  theme: 'light' | 'dark' | 'comfort';
-}
+import { useChapterData } from "@/hooks/useChapterData";
+import { useReadingSettings } from "@/hooks/useReadingSettings";
 
 const ChapterReader = () => {
   const { id, chapterId } = useParams<{ id: string; chapterId: string }>();
-  const { user } = useAuth();
-  const { checkChapterPurchased } = useCoins();
   const isMobile = useIsMobile();
-  const [chapter, setChapter] = useState<Chapter | null>(null);
-  const [novel, setNovel] = useState<Novel | null>(null);
-  const [allChapters, setAllChapters] = useState<ChapterListItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isUnlocked, setIsUnlocked] = useState(false);
-  const [checkingAccess, setCheckingAccess] = useState(true);
-  const [readingSettings, setReadingSettings] = useState<ReadingSettings>({
-    font_size: 18,
-    font_family: 'serif',
-    line_height: 1.6,
-    theme: 'dark'
-  });
-  const navigate = useNavigate();
 
-  // Initialize chapter cache
-  const { getCachedChapter, setCachedChapter, preloadChapter } = useChapterCache(novel?.id || '');
+  const {
+    chapter,
+    novel,
+    allChapters,
+    loading,
+    isUnlocked,
+    checkingAccess,
+    setIsUnlocked
+  } = useChapterData(id, chapterId);
 
-  const fetchChapterData = useCallback(async () => {
-    if (!id || !chapterId) return;
-    
-    setLoading(true);
-    setCheckingAccess(true);
-    
-    try {
-      console.log("Fetching chapter with novel ID/slug:", id, "chapter:", chapterId);
-      
-      let novelData: Novel | null = null;
-
-      // Find the novel first
-      if (isUUID(id || '')) {
-        const { data, error } = await supabase
-          .from('novels')
-          .select('id, title, author, total_chapters, total_views')
-          .eq('id', id)
-          .eq('is_hidden', false)
-          .maybeSingle();
-
-        if (error) throw error;
-        novelData = data;
-      } else {
-        // Search by slug
-        const { data: allNovels, error } = await supabase
-          .from('novels')
-          .select('id, title, author, total_chapters, total_views')
-          .eq('is_hidden', false);
-
-        if (error) throw error;
-
-        novelData = allNovels?.find(novel => slugify(novel.title) === id) || null;
-      }
-
-      if (!novelData) {
-        toast.error("Novel not found");
-        navigate("/");
-        return;
-      }
-
-      setNovel(novelData);
-
-      // Fetch all chapters for the slider (only visible ones)
-      const { data: allChaptersData, error: allChaptersError } = await supabase
-        .from('chapters')
-        .select('id, chapter_number, title, created_at, is_locked, coin_price')
-        .eq('novel_id', novelData.id)
-        .eq('is_hidden', false)
-        .order('chapter_number', { ascending: true });
-
-      if (allChaptersError) throw allChaptersError;
-      setAllChapters(allChaptersData || []);
-
-      const currentChapterNumber = parseInt(chapterId || '1');
-
-      // Try to get chapter from cache first
-      const cachedChapter = getCachedChapter(currentChapterNumber);
-      let chapterData: Chapter | null = null;
-
-      if (cachedChapter) {
-        console.log("Loading chapter from cache");
-        chapterData = cachedChapter;
-      } else {
-        // Fetch the specific chapter from database
-        const { data: fetchedChapter, error: chapterError } = await supabase
-          .from('chapters')
-          .select('*')
-          .eq('novel_id', novelData.id)
-          .eq('chapter_number', currentChapterNumber)
-          .eq('is_hidden', false)
-          .maybeSingle();
-
-        if (chapterError) throw chapterError;
-        chapterData = fetchedChapter;
-
-        // Cache the chapter
-        if (chapterData) {
-          setCachedChapter(chapterData);
-        }
-      }
-
-      if (!chapterData) {
-        toast.error("Chapter not found");
-        navigate(`/novel/${id}`);
-        return;
-      }
-
-      setChapter(chapterData);
-
-      // Check if chapter is locked and if user has access
-      if (chapterData.is_locked && user) {
-        const purchased = await checkChapterPurchased(chapterData.id);
-        setIsUnlocked(purchased);
-      } else if (!chapterData.is_locked) {
-        setIsUnlocked(true);
-      } else {
-        setIsUnlocked(false);
-      }
-
-      // Increment view count if chapter is accessible
-      if (!chapterData.is_locked || (chapterData.is_locked && user)) {
-        const purchased = chapterData.is_locked ? await checkChapterPurchased(chapterData.id) : true;
-        if (purchased) {
-          // Update chapter view count
-          await supabase
-            .from('chapters')
-            .update({ views: (chapterData.views || 0) + 1 })
-            .eq('id', chapterData.id);
-
-          // Update novel view count
-          const { data: currentNovelData, error: novelFetchError } = await supabase
-            .from('novels')
-            .select('total_views')
-            .eq('id', novelData.id)
-            .single();
-
-          if (novelFetchError) {
-            console.error("Error fetching novel data:", novelFetchError);
-          } else {
-            const { error: novelViewError } = await supabase
-              .from('novels')
-              .update({ 
-                total_views: (currentNovelData.total_views || 0) + 1,
-                updated_at: new Date().toISOString()
-              })
-              .eq('id', novelData.id);
-
-            if (novelViewError) {
-              console.error("Error updating novel view count:", novelViewError);
-            } else {
-              console.log("Novel view count updated successfully");
-            }
-          }
-        }
-      }
-
-      // Preload adjacent chapters in background
-      const prevChapterNumber = currentChapterNumber - 1;
-      const nextChapterNumber = currentChapterNumber + 1;
-
-      // Preload previous chapter
-      if (prevChapterNumber >= 1) {
-        setTimeout(() => preloadChapter(prevChapterNumber), 100);
-      }
-
-      // Preload next chapter
-      if (nextChapterNumber <= novelData.total_chapters) {
-        setTimeout(() => preloadChapter(nextChapterNumber), 200);
-      }
-
-    } catch (error) {
-      console.error("Error fetching chapter data:", error);
-      toast.error("Failed to load chapter");
-    } finally {
-      setLoading(false);
-      setCheckingAccess(false);
-    }
-  }, [id, chapterId, user?.id, navigate, getCachedChapter, setCachedChapter, preloadChapter]);
-
-  const fetchReadingSettings = useCallback(async () => {
-    if (user) {
-      try {
-        const { data, error } = await supabase
-          .from('user_reading_settings')
-          .select('*')
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-        if (error) throw error;
-        
-        if (data) {
-          const newSettings = {
-            font_size: data.font_size,
-            font_family: data.font_family,
-            line_height: data.line_height,
-            theme: data.theme as 'light' | 'dark' | 'comfort'
-          };
-          setReadingSettings(newSettings);
-        }
-      } catch (error) {
-        console.error("Error fetching reading settings:", error);
-      }
-    }
-  }, [user?.id]);
-
-  useEffect(() => {
-    fetchChapterData();
-  }, [id, chapterId]);
-
-  useEffect(() => {
-    fetchReadingSettings();
-  }, [fetchReadingSettings]);
+  const { readingSettings, handleSettingsChange } = useReadingSettings();
 
   const handleUnlockSuccess = useCallback(() => {
     setIsUnlocked(true);
-    toast.success("Chapter unlocked! You can now read it.");
-  }, []);
-
-  const handleSettingsChange = useCallback((newSettings: ReadingSettings) => {
-    console.log("Settings changed:", newSettings);
-    setReadingSettings(newSettings);
-  }, []);
+  }, [setIsUnlocked]);
 
   if (loading || checkingAccess) {
     return (
@@ -338,28 +95,6 @@ const ChapterReader = () => {
   const nextChapter = chapter.chapter_number < novel.total_chapters ? chapter.chapter_number + 1 : null;
   const prevChapter = chapter.chapter_number > 1 ? chapter.chapter_number - 1 : null;
 
-  const getThemeClasses = () => {
-    switch (readingSettings.theme) {
-      case 'light':
-        return 'bg-white text-gray-900';
-      case 'comfort':
-        return 'bg-amber-50 text-amber-900';
-      default:
-        return 'bg-gray-800 text-gray-200';
-    }
-  };
-
-  const getFontFamily = () => {
-    switch (readingSettings.font_family) {
-      case 'sans-serif':
-        return 'font-sans';
-      case 'monospace':
-        return 'font-mono';
-      default:
-        return 'font-serif';
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
       <Navbar />
@@ -368,92 +103,27 @@ const ChapterReader = () => {
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
           {/* Main Content */}
           <div className="xl:col-span-3">
-            {/* Header */}
-            <div className="mb-6">
-              <Link to={`/novel/${novelSlug}`}>
-                <Button variant="outline" className="mb-4 border-gray-600 text-gray-300 hover:bg-gray-700">
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  <span className="hidden sm:inline">Back to {novel.title}</span>
-                  <span className="sm:hidden">Back</span>
-                </Button>
-              </Link>
-              
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4">
-                <div className="flex-1">
-                  <h1 className="text-2xl md:text-3xl font-bold text-gray-100 mb-2">{chapter.title}</h1>
-                  <p className="text-gray-400 text-sm md:text-base">
-                    Chapter {chapter.chapter_number} of {novel.total_chapters}
-                  </p>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  <SettingsModal 
-                    currentSettings={readingSettings}
-                    onSettingsChange={handleSettingsChange} 
-                  />
-                  <ChapterListSlider
-                    chapters={allChapters}
-                    currentChapter={chapter.chapter_number}
-                    novelTitle={novel.title}
-                    novelSlug={novelSlug}
-                  />
-                </div>
-              </div>
-            </div>
+            <ChapterHeader
+              novelSlug={novelSlug}
+              novelTitle={novel.title}
+              chapterTitle={chapter.title}
+              chapterNumber={chapter.chapter_number}
+              totalChapters={novel.total_chapters}
+              readingSettings={readingSettings}
+              allChapters={allChapters}
+              onSettingsChange={handleSettingsChange}
+            />
 
-            {/* Chapter Content */}
-            <Card className="mb-8 bg-gray-800 border-gray-700 overflow-hidden">
-              <CardContent className="p-0">
-                <div 
-                  className={`p-4 md:p-8 ${getThemeClasses()} ${getFontFamily()}`}
-                  style={{
-                    fontSize: `${readingSettings.font_size}px`,
-                    lineHeight: readingSettings.line_height
-                  }}
-                >
-                  <div className="prose prose-lg max-w-none">
-                    {chapter.content.split('\n').map((paragraph, index) => (
-                      <p key={index} className="mb-4 leading-relaxed">
-                        {paragraph}
-                      </p>
-                    ))}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <ChapterContent
+              content={chapter.content}
+              readingSettings={readingSettings}
+            />
 
-            {/* Navigation - Mobile Friendly */}
-            <div className="flex justify-between items-center gap-4">
-              {/* Previous Chapter */}
-              {prevChapter ? (
-                <Link to={`/novel/${novelSlug}/chapter/${prevChapter}`}>
-                  <Button
-                    variant="outline"
-                    className="min-w-[44px] px-3 sm:px-5 py-2 border-gray-600 text-gray-300 hover:bg-gray-700 flex items-center justify-center"
-                  >
-                    <ArrowLeft className="h-5 w-5" />
-                    <span className="hidden sm:inline ml-2">Previous</span>
-                  </Button>
-                </Link>
-              ) : (
-                <div />
-              )}
-
-              {/* Next Chapter */}
-              {nextChapter ? (
-                <Link to={`/novel/${novelSlug}/chapter/${nextChapter}`}>
-                  <Button
-                    variant="outline"
-                    className="min-w-[44px] px-3 sm:px-5 py-2 border-gray-600 text-gray-300 hover:bg-gray-700 flex items-center justify-center"
-                  >
-                    <span className="hidden sm:inline mr-2">Next</span>
-                    <ArrowRight className="h-5 w-5" />
-                  </Button>
-                </Link>
-              ) : (
-                <div />
-              )}
-            </div>
+            <ChapterNavigation
+              novelSlug={novelSlug}
+              prevChapter={prevChapter}
+              nextChapter={nextChapter}
+            />
           </div>
 
           {/* Sidebar with Ad - Hidden on mobile, visible on xl screens */}
