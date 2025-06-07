@@ -246,10 +246,10 @@ const ChapterReader = () => {
 
   if (loading || checkingAccess) {
     return (
-      <div className="min-h-screen bg-black">
+      <div className={`min-h-screen ${getThemeBackgroundClasses()}`}>
         <Navbar />
-        <div className="max-w-4xl mx-auto px-4 py-8 text-center text-gray-300">
-          <p>Loading chapter...</p>
+        <div className="max-w-4xl mx-auto px-4 py-8 text-center">
+          <p className={getThemeTextClasses()}>Loading chapter...</p>
         </div>
       </div>
     );
@@ -257,10 +257,10 @@ const ChapterReader = () => {
 
   if (!chapter || !novel) {
     return (
-      <div className="min-h-screen bg-black">
+      <div className={`min-h-screen ${getThemeBackgroundClasses()}`}>
         <Navbar />
-        <div className="max-w-4xl mx-auto px-4 py-8 text-center text-gray-300">
-          <p>Chapter not found</p>
+        <div className="max-w-4xl mx-auto px-4 py-8 text-center">
+          <p className={getThemeTextClasses()}>Chapter not found</p>
           <Link to="/">
             <Button className="mt-4">Go Home</Button>
           </Link>
@@ -274,7 +274,7 @@ const ChapterReader = () => {
     const novelSlug = slugify(novel.title);
     
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+      <div className={`min-h-screen ${getThemeBackgroundClasses()}`}>
         <Navbar />
         
         <div className="max-w-4xl mx-auto px-4 py-4 md:py-8">
@@ -304,14 +304,47 @@ const ChapterReader = () => {
   const nextChapter = chapter.chapter_number < novel.total_chapters ? chapter.chapter_number + 1 : null;
   const prevChapter = chapter.chapter_number > 1 ? chapter.chapter_number - 1 : null;
 
-  const getThemeClasses = () => {
+  const getThemeBackgroundClasses = () => {
     switch (readingSettings.theme) {
       case 'light':
-        return 'bg-white text-gray-900';
+        return 'bg-white';
       case 'comfort':
-        return 'bg-amber-50 text-amber-900';
+        return 'bg-amber-50';
       default:
-        return 'bg-gray-800 text-gray-200';
+        return 'bg-gray-900';
+    }
+  };
+
+  const getThemeTextClasses = () => {
+    switch (readingSettings.theme) {
+      case 'light':
+        return 'text-gray-900';
+      case 'comfort':
+        return 'text-amber-900';
+      default:
+        return 'text-gray-200';
+    }
+  };
+
+  const getThemeCardClasses = () => {
+    switch (readingSettings.theme) {
+      case 'light':
+        return 'bg-white text-gray-900 border-gray-200';
+      case 'comfort':
+        return 'bg-amber-50 text-amber-900 border-amber-200';
+      default:
+        return 'bg-gray-800 text-gray-200 border-gray-700';
+    }
+  };
+
+  const getThemeButtonClasses = () => {
+    switch (readingSettings.theme) {
+      case 'light':
+        return 'border-gray-300 text-gray-700 hover:bg-gray-100';
+      case 'comfort':
+        return 'border-amber-300 text-amber-800 hover:bg-amber-100';
+      default:
+        return 'border-gray-600 text-gray-300 hover:bg-gray-700';
     }
   };
 
@@ -327,7 +360,7 @@ const ChapterReader = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+    <div className={`min-h-screen ${getThemeBackgroundClasses()}`}>
       <Navbar />
       
       <div className={`max-w-7xl mx-auto px-4 py-4 md:py-8 ${isMobile ? 'pb-40' : ''}`}>
@@ -337,7 +370,7 @@ const ChapterReader = () => {
             {/* Header */}
             <div className="mb-6">
               <Link to={`/novel/${novelSlug}`}>
-                <Button variant="outline" className="mb-4 border-gray-600 text-gray-300 hover:bg-gray-700">
+                <Button variant="outline" className={`mb-4 ${getThemeButtonClasses()}`}>
                   <ArrowLeft className="mr-2 h-4 w-4" />
                   <span className="hidden sm:inline">Back to {novel.title}</span>
                   <span className="sm:hidden">Back</span>
@@ -346,8 +379,8 @@ const ChapterReader = () => {
               
               <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4">
                 <div className="flex-1">
-                  <h1 className="text-2xl md:text-3xl font-bold text-gray-100 mb-2">{chapter.title}</h1>
-                  <p className="text-gray-400 text-sm md:text-base">
+                  <h1 className={`text-2xl md:text-3xl font-bold mb-2 ${getThemeTextClasses()}`}>{chapter.title}</h1>
+                  <p className={`text-sm md:text-base ${readingSettings.theme === 'light' ? 'text-gray-600' : readingSettings.theme === 'comfort' ? 'text-amber-700' : 'text-gray-400'}`}>
                     Chapter {chapter.chapter_number} of {novel.total_chapters}
                   </p>
                 </div>
@@ -368,10 +401,10 @@ const ChapterReader = () => {
             </div>
 
             {/* Chapter Content */}
-            <Card className={`p-4 md:p-8 ${getThemeClasses()} ${getFontFamily()}`}>
+            <Card className={`p-4 md:p-8 ${getThemeCardClasses()} ${getFontFamily()}`}>
               <CardContent className="p-0">
                 <div 
-                  className={`p-4 md:p-8 ${getThemeClasses()} ${getFontFamily()}`}
+                  className={`p-4 md:p-8 ${getFontFamily()}`}
                   style={{
                     fontSize: `${readingSettings.font_size}px`,
                     lineHeight: readingSettings.line_height
@@ -389,13 +422,13 @@ const ChapterReader = () => {
             </Card>
 
             {/* Navigation - Mobile Friendly */}
-            <div className="flex justify-between items-center gap-4">
+            <div className="flex justify-between items-center gap-4 mt-6">
               {/* Previous Chapter */}
               {prevChapter ? (
                 <Link to={`/novel/${novelSlug}/chapter/${prevChapter}`}>
                   <Button
                     variant="outline"
-                    className="min-w-[44px] px-3 sm:px-5 py-2 border-gray-600 text-gray-300 hover:bg-gray-700 flex items-center justify-center"
+                    className={`min-w-[44px] px-3 sm:px-5 py-2 ${getThemeButtonClasses()} flex items-center justify-center`}
                   >
                     <ArrowLeft className="h-5 w-5" />
                     <span className="hidden sm:inline ml-2">Previous</span>
@@ -410,7 +443,7 @@ const ChapterReader = () => {
                 <Link to={`/novel/${novelSlug}/chapter/${nextChapter}`}>
                   <Button
                     variant="outline"
-                    className="min-w-[44px] px-3 sm:px-5 py-2 border-gray-600 text-gray-300 hover:bg-gray-700 flex items-center justify-center"
+                    className={`min-w-[44px] px-3 sm:px-5 py-2 ${getThemeButtonClasses()} flex items-center justify-center`}
                   >
                     <span className="hidden sm:inline mr-2">Next</span>
                     <ArrowRight className="h-5 w-5" />
