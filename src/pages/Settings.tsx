@@ -1,93 +1,31 @@
-import { useState, useEffect } from "react";
+
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Slider } from "@/components/ui/slider";
 import { toast } from "@/components/ui/sonner";
 import Navbar from "@/components/Navbar";
-import { supabase } from "@/integrations/supabase/client";
-
-interface ReadingSettings {
-  font_size: number;
-  font_family: string;
-  line_height: number;
-  theme: 'light' | 'dark' | 'comfort';
-}
+import { useReadingSettings } from "@/hooks/useReadingSettings";
 
 const Settings = () => {
   const { user, isLoading } = useAuth();
-  const [settings, setSettings] = useState<ReadingSettings>({
-    font_size: 18,
-    font_family: 'serif',
-    line_height: 1.6,
-    theme: 'dark'
-  });
-  const [isSaving, setIsSaving] = useState(false);
-  const [isSettingsLoading, setIsSettingsLoading] = useState(true);
+  const { settings, updateSettings, isLoading: isSettingsLoading } = useReadingSettings();
 
   // Redirect if not logged in
   if (!user && !isLoading) {
     return <Navigate to="/auth" replace />;
   }
 
-  useEffect(() => {
-    const fetchSettings = async () => {
-      if (user) {
-        try {
-          const { data, error } = await supabase
-            .from('user_reading_settings')
-            .select('*')
-            .eq('user_id', user.id)
-            .maybeSingle();
-
-          if (error) throw error;
-          
-          if (data) {
-            setSettings({
-              font_size: data.font_size,
-              font_family: data.font_family,
-              line_height: data.line_height,
-              theme: data.theme as 'light' | 'dark' | 'comfort'
-            });
-          }
-        } catch (error) {
-          console.error("Error fetching reading settings:", error);
-          toast.error("Could not load reading settings");
-        } finally {
-          setIsSettingsLoading(false);
-        }
-      }
-    };
-
-    fetchSettings();
-  }, [user]);
-
-  const saveSettings = async () => {
-    if (!user) return;
-    
-    setIsSaving(true);
+  // Handle setting changes with immediate application and saving
+  const handleSettingChange = async (newSettings: any) => {
     try {
-      const { error } = await supabase
-        .from('user_reading_settings')
-        .update({
-          font_size: settings.font_size,
-          font_family: settings.font_family,
-          line_height: settings.line_height,
-          theme: settings.theme,
-          updated_at: new Date().toISOString()
-        })
-        .eq('user_id', user.id);
-
-      if (error) throw error;
+      await updateSettings(newSettings);
       toast.success("Reading settings saved successfully");
     } catch (error) {
       console.error("Error saving settings:", error);
       toast.error("Failed to save settings");
-    } finally {
-      setIsSaving(false);
     }
   };
 
@@ -123,7 +61,10 @@ const Settings = () => {
               <Label className="text-gray-300">Theme</Label>
               <RadioGroup 
                 value={settings.theme} 
-                onValueChange={(value) => setSettings({...settings, theme: value as 'light' | 'dark' | 'comfort'})}
+                onValueChange={(value) => handleSettingChange({
+                  ...settings, 
+                  theme: value as 'light' | 'dark' | 'comfort'
+                })}
                 className="flex flex-col space-y-1 sm:flex-row sm:space-y-0 sm:space-x-4"
               >
                 <div className="flex items-center space-x-2">
@@ -146,7 +87,10 @@ const Settings = () => {
               <Label className="text-gray-300">Font Family</Label>
               <RadioGroup 
                 value={settings.font_family} 
-                onValueChange={(value) => setSettings({...settings, font_family: value})}
+                onValueChange={(value) => handleSettingChange({
+                  ...settings, 
+                  font_family: value
+                })}
                 className="flex flex-col space-y-1 sm:flex-row sm:space-y-0 sm:space-x-4"
               >
                 <div className="flex items-center space-x-2">
@@ -170,10 +114,10 @@ const Settings = () => {
                 <Label className="text-gray-300">Font Size: {settings.font_size}px</Label>
                 <span className="text-sm text-gray-400">
                   <span className={settings.font_size === 14 ? "text-blue-400" : "text-gray-500 cursor-pointer"}
-                    onClick={() => setSettings({...settings, font_size: 14})}>A</span>
+                    onClick={() => handleSettingChange({...settings, font_size: 14})}>A</span>
                   {" - "}
                   <span className={settings.font_size === 24 ? "text-blue-400" : "text-gray-300 cursor-pointer"}
-                    onClick={() => setSettings({...settings, font_size: 24})}>A</span>
+                    onClick={() => handleSettingChange({...settings, font_size: 24})}>A</span>
                 </span>
               </div>
               <Slider
@@ -181,7 +125,10 @@ const Settings = () => {
                 min={14}
                 max={24}
                 step={1}
-                onValueChange={(value) => setSettings({...settings, font_size: value[0]})}
+                onValueChange={(value) => handleSettingChange({
+                  ...settings, 
+                  font_size: value[0]
+                })}
                 className="py-4"
               />
             </div>
@@ -194,7 +141,10 @@ const Settings = () => {
                 min={10}
                 max={25}
                 step={1}
-                onValueChange={(value) => setSettings({...settings, line_height: value[0] / 10})}
+                onValueChange={(value) => handleSettingChange({
+                  ...settings, 
+                  line_height: value[0] / 10
+                })}
                 className="py-4"
               />
               <div className="flex justify-between text-xs text-gray-500">
@@ -224,14 +174,6 @@ const Settings = () => {
                 <p>This is how your text will appear when reading chapters. The quick brown fox jumps over the lazy dog.</p>
               </div>
             </div>
-
-            <Button 
-              onClick={saveSettings}
-              className="w-full bg-blue-600 hover:bg-blue-700 mt-4"
-              disabled={isSaving}
-            >
-              {isSaving ? "Saving..." : "Save Settings"}
-            </Button>
           </CardContent>
         </Card>
       </div>

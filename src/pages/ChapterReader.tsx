@@ -16,6 +16,7 @@ import { useCoins } from "@/hooks/useCoins";
 import { isUUID, slugify } from "@/lib/slugify";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useChapterCache } from "@/hooks/useChapterCache";
+import { useReadingSettings } from "@/hooks/useReadingSettings";
 
 interface Chapter {
   id: string;
@@ -58,18 +59,13 @@ const ChapterReader = () => {
   const { user } = useAuth();
   const { checkChapterPurchased } = useCoins();
   const isMobile = useIsMobile();
+  const { settings: readingSettings, updateSettings: updateReadingSettings } = useReadingSettings();
   const [chapter, setChapter] = useState<Chapter | null>(null);
   const [novel, setNovel] = useState<Novel | null>(null);
   const [allChapters, setAllChapters] = useState<ChapterListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [checkingAccess, setCheckingAccess] = useState(true);
-  const [readingSettings, setReadingSettings] = useState<ReadingSettings>({
-    font_size: 18,
-    font_family: 'serif',
-    line_height: 1.6,
-    theme: 'dark'
-  });
   const navigate = useNavigate();
 
   // Initialize chapter cache
@@ -234,49 +230,19 @@ const ChapterReader = () => {
     }
   }, [id, chapterId, user?.id, navigate, getCachedChapter, setCachedChapter, preloadChapter]);
 
-  const fetchReadingSettings = useCallback(async () => {
-    if (user) {
-      try {
-        const { data, error } = await supabase
-          .from('user_reading_settings')
-          .select('*')
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-        if (error) throw error;
-        
-        if (data) {
-          const newSettings = {
-            font_size: data.font_size,
-            font_family: data.font_family,
-            line_height: data.line_height,
-            theme: data.theme as 'light' | 'dark' | 'comfort'
-          };
-          setReadingSettings(newSettings);
-        }
-      } catch (error) {
-        console.error("Error fetching reading settings:", error);
-      }
-    }
-  }, [user?.id]);
-
   useEffect(() => {
     fetchChapterData();
   }, [id, chapterId]);
-
-  useEffect(() => {
-    fetchReadingSettings();
-  }, [fetchReadingSettings]);
 
   const handleUnlockSuccess = useCallback(() => {
     setIsUnlocked(true);
     toast.success("Chapter unlocked! You can now read it.");
   }, []);
 
-  const handleSettingsChange = useCallback((newSettings: ReadingSettings) => {
+  const handleSettingsChange = useCallback((newSettings: any) => {
     console.log("Settings changed:", newSettings);
-    setReadingSettings(newSettings);
-  }, []);
+    updateReadingSettings(newSettings);
+  }, [updateReadingSettings]);
 
   if (loading || checkingAccess) {
     return (

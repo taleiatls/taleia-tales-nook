@@ -8,14 +8,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Slider } from "@/components/ui/slider";
 import { toast } from "@/components/ui/sonner";
 import { Settings } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-
-interface ReadingSettings {
-  font_size: number;
-  font_family: string;
-  line_height: number;
-  theme: 'light' | 'dark' | 'comfort';
-}
+import { useReadingSettings, ReadingSettings } from "@/hooks/useReadingSettings";
 
 interface SettingsModalProps {
   currentSettings?: ReadingSettings;
@@ -24,89 +17,30 @@ interface SettingsModalProps {
 
 const SettingsModal = ({ currentSettings, onSettingsChange }: SettingsModalProps) => {
   const { user } = useAuth();
+  const { settings: hookSettings, updateSettings, isLoading } = useReadingSettings();
   const [open, setOpen] = useState(false);
-  const [settings, setSettings] = useState<ReadingSettings>({
-    font_size: 18,
-    font_family: 'serif',
-    line_height: 1.6,
-    theme: 'dark'
-  });
-  const [isSaving, setIsSaving] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    if (currentSettings) {
-      setSettings(currentSettings);
-      setIsLoading(false);
-    } else {
-      const fetchSettings = async () => {
-        if (user) {
-          try {
-            const { data, error } = await supabase
-              .from('user_reading_settings')
-              .select('*')
-              .eq('user_id', user.id)
-              .maybeSingle();
+  // Use hook settings or provided settings
+  const activeSettings = currentSettings || hookSettings;
 
-            if (error) throw error;
-            
-            if (data) {
-              const newSettings = {
-                font_size: data.font_size,
-                font_family: data.font_family,
-                line_height: data.line_height,
-                theme: data.theme as 'light' | 'dark' | 'comfort'
-              };
-              setSettings(newSettings);
-              onSettingsChange?.(newSettings);
-            }
-          } catch (error) {
-            console.error("Error fetching reading settings:", error);
-          } finally {
-            setIsLoading(false);
-          }
-        } else {
-          setIsLoading(false);
-        }
-      };
-
-      if (open) {
-        fetchSettings();
-      }
-    }
-  }, [user, open, currentSettings, onSettingsChange]);
-
-  const saveSettings = async () => {
-    if (!user) {
-      toast.success("Settings applied temporarily");
-      onSettingsChange?.(settings);
-      setOpen(false);
-      return;
-    }
-    
-    setIsSaving(true);
+  // Handle setting changes with immediate application
+  const handleSettingChange = async (newSettings: ReadingSettings) => {
     try {
-      const { error } = await supabase
-        .from('user_reading_settings')
-        .upsert({
-          user_id: user.id,
-          font_size: settings.font_size,
-          font_family: settings.font_family,
-          line_height: settings.line_height,
-          theme: settings.theme,
-          updated_at: new Date().toISOString()
-        });
-
-      if (error) throw error;
+      // Apply settings immediately
+      onSettingsChange?.(newSettings);
       
-      toast.success("Reading settings saved successfully");
-      onSettingsChange?.(settings);
-      setOpen(false);
+      // Save settings (to localStorage for guests, database for users)
+      await updateSettings(newSettings);
+      
+      // Show appropriate toast message
+      if (user) {
+        toast.success("Settings saved!");
+      } else {
+        toast.success("Settings applied and will be saved when you log in");
+      }
     } catch (error) {
       console.error("Error saving settings:", error);
       toast.error("Failed to save settings");
-    } finally {
-      setIsSaving(false);
     }
   };
 
@@ -131,8 +65,11 @@ const SettingsModal = ({ currentSettings, onSettingsChange }: SettingsModalProps
             <div className="space-y-3">
               <Label className="text-gray-300">Theme</Label>
               <RadioGroup 
-                value={settings.theme} 
-                onValueChange={(value) => setSettings({...settings, theme: value as 'light' | 'dark' | 'comfort'})}
+                value={activeSettings.theme} 
+                onValueChange={(value) => handleSettingChange({
+                  ...activeSettings, 
+                  theme: value as 'light' | 'dark' | 'comfort'
+                })}
                 className="flex flex-col space-y-1"
               >
                 <div className="flex items-center space-x-2">
@@ -154,8 +91,11 @@ const SettingsModal = ({ currentSettings, onSettingsChange }: SettingsModalProps
             <div className="space-y-3">
               <Label className="text-gray-300">Font Family</Label>
               <RadioGroup 
-                value={settings.font_family} 
-                onValueChange={(value) => setSettings({...settings, font_family: value})}
+                value={activeSettings.font_family} 
+                onValueChange={(value) => handleSettingChange({
+                  ...activeSettings, 
+                  font_family: value
+                })}
                 className="flex flex-col space-y-1"
               >
                 <div className="flex items-center space-x-2">
@@ -176,27 +116,33 @@ const SettingsModal = ({ currentSettings, onSettingsChange }: SettingsModalProps
             {/* Font Size Slider */}
             <div className="space-y-3">
               <div className="flex justify-between items-center">
-                <Label className="text-gray-300">Font Size: {settings.font_size}px</Label>
+                <Label className="text-gray-300">Font Size: {activeSettings.font_size}px</Label>
               </div>
               <Slider
-                value={[settings.font_size]}
+                value={[activeSettings.font_size]}
                 min={14}
                 max={24}
                 step={1}
-                onValueChange={(value) => setSettings({...settings, font_size: value[0]})}
+                onValueChange={(value) => handleSettingChange({
+                  ...activeSettings, 
+                  font_size: value[0]
+                })}
                 className="py-4"
               />
             </div>
 
             {/* Line Height Slider */}
             <div className="space-y-3">
-              <Label className="text-gray-300">Line Height: {settings.line_height}</Label>
+              <Label className="text-gray-300">Line Height: {activeSettings.line_height}</Label>
               <Slider
-                value={[settings.line_height * 10]}
+                value={[activeSettings.line_height * 10]}
                 min={10}
                 max={25}
                 step={1}
-                onValueChange={(value) => setSettings({...settings, line_height: value[0] / 10})}
+                onValueChange={(value) => handleSettingChange({
+                  ...activeSettings, 
+                  line_height: value[0] / 10
+                })}
                 className="py-4"
               />
             </div>
@@ -206,29 +152,21 @@ const SettingsModal = ({ currentSettings, onSettingsChange }: SettingsModalProps
               <h4 className="text-gray-400 text-sm mb-2">Preview</h4>
               <div 
                 className={`p-4 rounded-md ${
-                  settings.theme === 'light' 
+                  activeSettings.theme === 'light' 
                     ? 'bg-gray-100 text-gray-900' 
-                    : settings.theme === 'dark' 
+                    : activeSettings.theme === 'dark' 
                       ? 'bg-gray-800 text-gray-200' 
                       : 'bg-amber-50 text-amber-900'
                 }`}
                 style={{
-                  fontFamily: settings.font_family,
-                  fontSize: `${settings.font_size}px`,
-                  lineHeight: settings.line_height
+                  fontFamily: activeSettings.font_family,
+                  fontSize: `${activeSettings.font_size}px`,
+                  lineHeight: activeSettings.line_height
                 }}
               >
                 <p>This is how your text will appear when reading chapters.</p>
               </div>
             </div>
-
-            <Button 
-              onClick={saveSettings}
-              className="w-full bg-blue-600 hover:bg-blue-700"
-              disabled={isSaving}
-            >
-              {isSaving ? "Saving..." : "Save Settings"}
-            </Button>
           </div>
         )}
       </DialogContent>
