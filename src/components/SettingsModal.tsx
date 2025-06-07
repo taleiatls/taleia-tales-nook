@@ -23,6 +23,51 @@ const SettingsModal = ({ currentSettings, onSettingsChange }: SettingsModalProps
   // Use hook settings or provided settings
   const activeSettings = currentSettings || hookSettings;
 
+  // Theme helper functions
+  const getThemeDialogClasses = () => {
+    switch (activeSettings.theme) {
+      case 'light':
+        return 'bg-white border-gray-200 text-gray-900';
+      case 'comfort':
+        return 'bg-amber-50 border-amber-200 text-amber-900';
+      default:
+        return 'bg-gray-900 border-gray-700 text-white';
+    }
+  };
+
+  const getThemeButtonClasses = () => {
+    switch (activeSettings.theme) {
+      case 'light':
+        return 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50';
+      case 'comfort':
+        return 'bg-amber-25 border-amber-300 text-amber-800 hover:bg-amber-100';
+      default:
+        return 'bg-gray-800 border-gray-600 text-gray-300 hover:bg-gray-700';
+    }
+  };
+
+  const getThemeLabelClasses = () => {
+    switch (activeSettings.theme) {
+      case 'light':
+        return 'text-gray-700';
+      case 'comfort':
+        return 'text-amber-700';
+      default:
+        return 'text-gray-300';
+    }
+  };
+
+  const getThemePreviewClasses = () => {
+    switch (activeSettings.theme) {
+      case 'light':
+        return 'border-gray-300 bg-gray-100 text-gray-900';
+      case 'comfort':
+        return 'border-amber-300 bg-amber-50 text-amber-900';
+      default:
+        return 'border-gray-700 bg-gray-800 text-gray-200';
+    }
+  };
+
   // Handle setting changes with immediate application
   const handleSettingChange = async (newSettings: ReadingSettings) => {
     try {
@@ -47,23 +92,23 @@ const SettingsModal = ({ currentSettings, onSettingsChange }: SettingsModalProps
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="border-gray-600 text-gray-300 hover:bg-gray-700">
+        <Button variant="outline" size="sm" className={getThemeButtonClasses()}>
           <Settings className="h-4 w-4" />
         </Button>
       </DialogTrigger>
       
-      <DialogContent className="max-w-md bg-gray-900 border-gray-700 text-white">
+      <DialogContent className={`max-w-md ${getThemeDialogClasses()}`}>
         <DialogHeader>
-          <DialogTitle className="text-white">Reading Settings</DialogTitle>
+          <DialogTitle className={getThemeLabelClasses()}>Reading Settings</DialogTitle>
         </DialogHeader>
         
         {isLoading ? (
-          <div className="text-center text-gray-300 py-4">Loading settings...</div>
+          <div className={`text-center py-4 ${getThemeLabelClasses()}`}>Loading settings...</div>
         ) : (
           <div className="space-y-6 py-4">
             {/* Theme Selection */}
             <div className="space-y-3">
-              <Label className="text-gray-300">Theme</Label>
+              <Label className={getThemeLabelClasses()}>Theme</Label>
               <RadioGroup 
                 value={activeSettings.theme} 
                 onValueChange={(value) => handleSettingChange({
@@ -73,23 +118,23 @@ const SettingsModal = ({ currentSettings, onSettingsChange }: SettingsModalProps
                 className="flex flex-col space-y-1"
               >
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="light" id="light" className="bg-gray-700" />
-                  <Label htmlFor="light" className="text-gray-300">Light</Label>
+                  <RadioGroupItem value="light" id="light" />
+                  <Label htmlFor="light" className={getThemeLabelClasses()}>Light</Label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="dark" id="dark" className="bg-gray-700" />
-                  <Label htmlFor="dark" className="text-gray-300">Dark</Label>
+                  <RadioGroupItem value="dark" id="dark" />
+                  <Label htmlFor="dark" className={getThemeLabelClasses()}>Dark</Label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="comfort" id="comfort" className="bg-gray-700" />
-                  <Label htmlFor="comfort" className="text-gray-300">Comfort</Label>
+                  <RadioGroupItem value="comfort" id="comfort" />
+                  <Label htmlFor="comfort" className={getThemeLabelClasses()}>Comfort</Label>
                 </div>
               </RadioGroup>
             </div>
             
             {/* Font Family Selection */}
             <div className="space-y-3">
-              <Label className="text-gray-300">Font Family</Label>
+              <Label className={getThemeLabelClasses()}>Font Family</Label>
               <RadioGroup 
                 value={activeSettings.font_family} 
                 onValueChange={(value) => handleSettingChange({
@@ -99,16 +144,16 @@ const SettingsModal = ({ currentSettings, onSettingsChange }: SettingsModalProps
                 className="flex flex-col space-y-1"
               >
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="serif" id="serif" className="bg-gray-700" />
-                  <Label htmlFor="serif" className="font-serif text-gray-300">Serif</Label>
+                  <RadioGroupItem value="serif" id="serif" />
+                  <Label htmlFor="serif" className={`font-serif ${getThemeLabelClasses()}`}>Serif</Label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="sans-serif" id="sans-serif" className="bg-gray-700" />
-                  <Label htmlFor="sans-serif" className="font-sans text-gray-300">Sans-serif</Label>
+                  <RadioGroupItem value="sans-serif" id="sans-serif" />
+                  <Label htmlFor="sans-serif" className={`font-sans ${getThemeLabelClasses()}`}>Sans-serif</Label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="monospace" id="monospace" className="bg-gray-700" />
-                  <Label htmlFor="monospace" className="font-mono text-gray-300">Monospace</Label>
+                  <RadioGroupItem value="monospace" id="monospace" />
+                  <Label htmlFor="monospace" className={`font-mono ${getThemeLabelClasses()}`}>Monospace</Label>
                 </div>
               </RadioGroup>
             </div>
@@ -116,7 +161,7 @@ const SettingsModal = ({ currentSettings, onSettingsChange }: SettingsModalProps
             {/* Font Size Slider */}
             <div className="space-y-3">
               <div className="flex justify-between items-center">
-                <Label className="text-gray-300">Font Size: {activeSettings.font_size}px</Label>
+                <Label className={getThemeLabelClasses()}>Font Size: {activeSettings.font_size}px</Label>
               </div>
               <Slider
                 value={[activeSettings.font_size]}
@@ -133,7 +178,7 @@ const SettingsModal = ({ currentSettings, onSettingsChange }: SettingsModalProps
 
             {/* Line Height Slider */}
             <div className="space-y-3">
-              <Label className="text-gray-300">Line Height: {activeSettings.line_height}</Label>
+              <Label className={getThemeLabelClasses()}>Line Height: {activeSettings.line_height}</Label>
               <Slider
                 value={[activeSettings.line_height * 10]}
                 min={10}
@@ -148,16 +193,10 @@ const SettingsModal = ({ currentSettings, onSettingsChange }: SettingsModalProps
             </div>
 
             {/* Preview */}
-            <div className="border border-gray-700 rounded-lg p-4">
-              <h4 className="text-gray-400 text-sm mb-2">Preview</h4>
+            <div className={`border rounded-lg p-4 ${getThemePreviewClasses()}`}>
+              <h4 className={`text-sm mb-2 opacity-70`}>Preview</h4>
               <div 
-                className={`p-4 rounded-md ${
-                  activeSettings.theme === 'light' 
-                    ? 'bg-gray-100 text-gray-900' 
-                    : activeSettings.theme === 'dark' 
-                      ? 'bg-gray-800 text-gray-200' 
-                      : 'bg-amber-50 text-amber-900'
-                }`}
+                className="p-4 rounded-md"
                 style={{
                   fontFamily: activeSettings.font_family,
                   fontSize: `${activeSettings.font_size}px`,
