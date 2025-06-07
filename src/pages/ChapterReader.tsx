@@ -97,11 +97,11 @@ const ChapterReader = () => {
   const getThemeCardClasses = () => {
     switch (readingSettings.theme) {
       case 'light':
-        return 'bg-white text-gray-900 border-gray-200';
+        return 'bg-white text-gray-900';
       case 'comfort':
-        return 'bg-amber-50 text-amber-900 border-amber-200';
+        return 'bg-amber-50 text-amber-900';
       default:
-        return 'bg-gray-800 text-gray-200 border-gray-700';
+        return 'bg-gray-800 text-gray-200 ';
     }
   };
 
@@ -424,7 +424,7 @@ const ChapterReader = () => {
             </div>
 
             {/* Chapter Content */}
-            <Card className={`p-4 md:p-8  ${getFontFamily()}`}>
+            <Card className={`p-4 md:p-8 ${getThemeCardClasses()} ${getFontFamily()}`}>
               <CardContent className="p-0">
                 <div 
                   className={`p-4 md:p-8 ${getFontFamily()}`}
