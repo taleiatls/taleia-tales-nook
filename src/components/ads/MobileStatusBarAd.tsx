@@ -1,8 +1,9 @@
 
+import { memo } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import AdSenseAd from './AdSenseAd';
 
-const MobileStatusBarAd = () => {
+const MobileStatusBarAd = memo(() => {
   const isMobile = useIsMobile();
 
   if (!isMobile) return null;
@@ -11,7 +12,7 @@ const MobileStatusBarAd = () => {
     <div className="fixed bottom-0 left-0 right-0 z-50 bg-gray-900 border-t border-gray-700 p-2">
       <div className="text-xs text-gray-500 text-center mb-1">Advertisement</div>
       <AdSenseAd
-        adSlot="8810773595" // Replace with your actual ad slot ID
+        adSlot="8810773595"
         adFormat="banner"
         width="320px"
         height="50px"
@@ -20,6 +21,8 @@ const MobileStatusBarAd = () => {
       />
     </div>
   );
-};
+});
+
+MobileStatusBarAd.displayName = 'MobileStatusBarAd';
 
 export default MobileStatusBarAd;
