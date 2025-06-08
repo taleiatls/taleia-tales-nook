@@ -24,7 +24,7 @@ const AdSenseAd = ({
   className = "",
   responsive = true 
 }: AdSenseAdProps) => {
-  const adRef = useRef<HTMLInsElement>(null);
+  const adRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     const loadAd = () => {
