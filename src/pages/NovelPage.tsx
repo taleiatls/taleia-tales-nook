@@ -13,7 +13,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { isUUID, slugify } from "@/lib/slugify";
-import NovelPageAd from "@/components/ads/NovelPageAd";
 
 interface Novel {
   id: string;
