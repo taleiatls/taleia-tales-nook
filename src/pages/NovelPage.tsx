@@ -455,8 +455,6 @@ const NovelPage = () => {
                     <p className="text-gray-300 leading-relaxed">{novel.synopsis}</p>
                   </CardContent>
                 </Card>
-                {/* Add advertisement after description */}
-                <NovelPageAd />
               </TabsContent>
 
               <TabsContent value="chapters" className="mt-6">
