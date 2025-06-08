@@ -2,44 +2,33 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://taleiatls.com/</loc>
-    <lastmod>2025-06-07</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>1.0</priority>
+    <lastmod>2025-06-08</lastmod>
   </url>
   <url>
     <loc>https://taleiatls.com/search</loc>
+    <lastmod>2025-06-08</lastmod>
+  </url>
+  <url>
+    <loc>https://taleiatls.com/novel/lets-strive-to-be-a-great-ruler</loc>
     <lastmod>2025-06-07</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://taleiatls.com/novel/this-is-how-i-became-a-chaebol</loc>
+    <lastmod>2025-06-07</lastmod>
   </url>
   <url>
     <loc>https://taleiatls.com/novel/genius-hitter-hits-fastball</loc>
     <lastmod>2025-06-07</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
   </url>
   <url>
     <loc>https://taleiatls.com/novel/i-became-a-hidden-powerhouse-of-the-british-empire</loc>
     <lastmod>2025-06-07</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
   </url>
   <url>
     <loc>https://taleiatls.com/novel/dark-haired-british-doctor</loc>
     <lastmod>2025-06-06</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
   <url>
     <loc>https://taleiatls.com/novel/the-son-in-law-of-the-zhuge-family-for-a-bowl-of-jjajangmyeon</loc>
     <lastmod>2025-06-06</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://taleiatls.com/novel/summoner-in-the-corner-of-the-house</loc>
-    <lastmod>2025-06-06</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
   </url>
 </urlset>
