@@ -1,5 +1,4 @@
 
-import { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -22,29 +21,6 @@ import Admin from "./pages/Admin";
 const queryClient = new QueryClient();
 
 const App = () => {
-  useEffect(() => {
-    // Load AdSense script
-    const loadAdSenseScript = () => {
-      if (typeof window !== 'undefined' && !document.querySelector('script[src*="adsbygoogle.js"]')) {
-        const script = document.createElement('script');
-        script.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7277063954373465';
-        script.async = true;
-        script.crossOrigin = 'anonymous';
-        document.head.appendChild(script);
-        
-        script.onload = () => {
-          console.log('AdSense script loaded successfully');
-        };
-        
-        script.onerror = () => {
-          console.error('Failed to load AdSense script');
-        };
-      }
-    };
-
-    loadAdSenseScript();
-  }, []);
-
   return (
     <QueryClientProvider client={queryClient}>
       <HelmetProvider>

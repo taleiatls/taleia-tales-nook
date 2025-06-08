@@ -1,5 +1,5 @@
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 
 interface AdSenseAdProps {
   adSlot: string;
@@ -24,51 +24,31 @@ const AdSenseAd = ({
   className = "",
   responsive = true 
 }: AdSenseAdProps) => {
-  const adRef = useRef<HTMLDivElement>(null);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const adRef = useRef<HTMLInsElement>(null);
 
   useEffect(() => {
-    const loadAdSense = () => {
+    const loadAd = () => {
       try {
-        // Check if AdSense script is loaded
-        if (typeof window !== 'undefined') {
-          if (!window.adsbygoogle) {
-            // Initialize adsbygoogle array if it doesn't exist
-            window.adsbygoogle = [];
-          }
-          
-          // Push the ad configuration
-          window.adsbygoogle.push({});
-          setIsLoaded(true);
+        if (typeof window !== 'undefined' && window.adsbygoogle) {
+          // Push the ad to AdSense queue
+          (window.adsbygoogle = window.adsbygoogle || []).push({});
           console.log('AdSense ad loaded for slot:', adSlot);
         }
       } catch (error) {
         console.error('AdSense error for slot', adSlot, ':', error);
-        setIsLoaded(false);
       }
     };
 
-    // Small delay to ensure DOM is ready
-    const timer = setTimeout(loadAdSense, 100);
+    // Wait a bit for the DOM to be ready
+    const timer = setTimeout(loadAd, 100);
     
     return () => clearTimeout(timer);
   }, [adSlot]);
 
-  // Fallback display when ads don't load
-  if (!isLoaded) {
-    return (
-      <div 
-        className={`ad-container ${className} flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded`}
-        style={{ width: responsive ? "100%" : width, height: responsive ? "auto" : height, minHeight: "100px" }}
-      >
-        <div className="text-gray-500 text-sm">Advertisement</div>
-      </div>
-    );
-  }
-
   return (
-    <div className={`ad-container ${className}`} ref={adRef}>
+    <div className={`ad-container ${className}`}>
       <ins
+        ref={adRef}
         className="adsbygoogle"
         style={{ 
           display: "block", 
