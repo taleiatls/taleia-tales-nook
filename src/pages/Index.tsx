@@ -7,7 +7,6 @@ import { toast } from "@/components/ui/sonner";
 import Navbar from "@/components/Navbar";
 import SEO from "@/components/SEO";
 import { supabase } from "@/integrations/supabase/client";
-import HomeBannerAd from "@/components/ads/HomeBannerAd";
 import { slugify } from "@/lib/slugify";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
@@ -158,6 +157,23 @@ const Index = () => {
   }, []);
 
   useEffect(() => {
+    // Load Google Auto Ads
+    const script = document.createElement('script');
+    script.async = true;
+    script.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7277063954373465';
+    script.crossOrigin = 'anonymous';
+    document.head.appendChild(script);
+
+    return () => {
+      // Cleanup script on unmount
+      const existingScript = document.querySelector('script[src*="pagead2.googlesyndication.com"]');
+      if (existingScript) {
+        document.head.removeChild(existingScript);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     fetchNovels();
   }, [fetchNovels]);
 
@@ -303,9 +319,6 @@ const Index = () => {
           )}
         </div>
       </section>
-
-      {/* Ad Banner - Placed between featured content and main content */}
-      <HomeBannerAd />
 
       <div className="max-w-6xl mx-auto px-4 grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Recently Updated */}

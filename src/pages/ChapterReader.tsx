@@ -8,8 +8,6 @@ import Navbar from "@/components/Navbar";
 import LockedChapter from "@/components/LockedChapter";
 import ChapterListSlider from "@/components/ChapterListSlider";
 import SettingsModal from "@/components/SettingsModal";
-import ChapterSidebarAd from "@/components/ads/ChapterSidebarAd";
-import MobileStatusBarAd from "@/components/ads/MobileStatusBarAd";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCoins } from "@/hooks/useCoins";
@@ -312,6 +310,23 @@ const ChapterReader = () => {
     fetchChapterData();
   }, [id, chapterId]);
 
+  useEffect(() => {
+    // Load Google Auto Ads
+    const script = document.createElement('script');
+    script.async = true;
+    script.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7277063954373465';
+    script.crossOrigin = 'anonymous';
+    document.head.appendChild(script);
+
+    return () => {
+      // Cleanup script on unmount
+      const existingScript = document.querySelector('script[src*="pagead2.googlesyndication.com"]');
+      if (existingScript) {
+        document.head.removeChild(existingScript);
+      }
+    };
+  }, []);
+
   const handleUnlockSuccess = useCallback(() => {
     setIsUnlocked(true);
     toast.success("Chapter unlocked! You can now read it.");
@@ -386,10 +401,10 @@ const ChapterReader = () => {
     <div className={`min-h-screen ${getThemeBackgroundClasses()}`}>
       <Navbar />
       
-      <div className={`max-w-7xl mx-auto px-4 py-4 md:py-8 ${isMobile ? 'pb-40' : ''}`}>
+      <div className={`max-w-7xl mx-auto px-4 py-4 md:py-8 ${isMobile ? 'pb-20' : ''}`}>
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
           {/* Main Content */}
-          <div className="xl:col-span-3">
+          <div className="xl:col-span-4">
             {/* Header */}
             <div className="mb-6">
               <Link to={`/novel/${novelSlug}`}>
@@ -478,18 +493,8 @@ const ChapterReader = () => {
               )}
             </div>
           </div>
-
-          {/* Sidebar with Ad - Hidden on mobile, visible on xl screens */}
-          <div className="hidden xl:block xl:col-span-1">
-            <div className="sticky top-8">
-              <ChapterSidebarAd />
-            </div>
-          </div>
         </div>
       </div>
-
-      {/* Mobile Status Bar Ad */}
-      <MobileStatusBarAd />
     </div>
   );
 };
